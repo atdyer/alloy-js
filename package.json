@@ -1,0 +1,12 @@
+{
+  "name": "alloy-js",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Tristan Dyer",
+  "license": "MIT",
+  "dependencies": {
+    "@octokit/rest": "15.6.0",
+    "express": "4.16.3",
+    "pug": "2.0.3"
+  }
+}

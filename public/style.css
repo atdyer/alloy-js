@@ -1,0 +1,37 @@
+body {
+    margin: 0 auto 4em auto;
+}
+
+header {
+    color: #999;
+    width: 100%;
+    top: 0;
+    left: 0;
+    padding: 1.5em 0;
+}
+
+.column {
+    max-width: 960px;
+    position: relative;
+    display: block;
+    margin: 0 auto;
+    padding: 0 10px;
+}
+
+a {
+    color: #000;
+}
+
+a:not(:hover) {
+    text-decoration: none;
+}
+
+.date {
+    font-size: 11px;
+}
+
+.avatar {
+    position: absolute;
+    top: 0;
+    right: 100%;
+}
