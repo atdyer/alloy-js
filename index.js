@@ -8,6 +8,7 @@ app.set('view engine', 'pug');
 app.get('/', get_gists);
 app.get('/:user', user_page);
 app.get('/:user/:gist_id', (req, res) => res.send(req.params));
+app.get('/favicon.ico', (req, res) => res.status(204));
 app.listen(3000, () => console.log('Example app listening on port 3000'));
 
 
@@ -23,20 +24,9 @@ function user_page (req, res) {
             res.render('user', {
                 user: user,
                 gists: gists
-            })
-            // res.send({
-            //     user: results[0],
-            //     gists: results[1]
-            // });
+            });
         })
         .catch(error);
-
-    // res.render('user', {
-    //     name: 'Tristan Dyer',
-    //     html_url: 'https://github.com/atdyer',
-    //     last_update: 'February 22, 2017',
-    //     avatar: 'https://avatars0.githubusercontent.com/u/4733059?v=4&s=60'
-    // });
 }
 
 function get_gists (user) {
@@ -79,10 +69,12 @@ function filter_user_data (user) {
     return {
         avatar: user['avatar_url'] + '&s=60',
         html_url: user['html_url'],
+        login: user.login,
         name: user.name,
     }
 }
 
-function error () {
-    console.log('Uh oh.');
+function error (err) {
+    console.log('Uh oh....');
+    console.log('\t' + err);
 }

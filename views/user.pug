@@ -14,11 +14,45 @@ html(lang="en")
                 | 's Alloy Visualizations
                 div(class='date')
                     | None yet...
-        div(class='column')
-            ul
-                each gist in gists
-                    li #{gist.description}
+        div(class='column gists')
+            div(class='none', style='display:none') Sorry, #{user.name} has no Alloy Visualizations.
 
-        //script.
-            // console.log(!{JSON.stringify(gists)});
+        script.
+            var formatDate = d3.timeFormat("%B %-d, %Y"),
+                parseDate = d3.isoParse;
+
+            render(!{JSON.stringify(gists)});
+
+            function render(gists) {
+
+                if (!gists.length) {
+                    d3.select('.none')
+                        .style('display', null);
+                    return;
+                }
+
+                gists.forEach(function (d) {
+                    d.created_at = parseDate(d.created_at);
+                    d.updated_at = parseDate(d.updated_at);
+                });
+
+                gists.sort(function (a, b) {
+                    return a.updated_at < b.updated_at;
+                });
+
+                d3.select('.date')
+                    .text('Updated ' + formatDate(gists[gists.length - 1].updated_at));
+
+                d3.select('.gists')
+                    .selectAll('.gist')
+                    .data(gists, function (d) { return d.id; })
+                    .enter()
+                        .append('a')
+                        .attr('class', 'gist gist--thumbnail')
+                        .attr('href', function (d) { return '/#{user.login}/' + d.id; })
+                    .append('div')
+                        .attr('class', 'gist-description gist-underline')
+                        .text(function (d) { return d.description || d.id; });
+
+            }
 

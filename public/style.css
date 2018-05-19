@@ -1,5 +1,6 @@
 body {
     margin: 0 auto 4em auto;
+    font-family: "Helvetica Nue", Helvetica, sans-serif;
 }
 
 header {
@@ -34,4 +35,41 @@ a:not(:hover) {
     position: absolute;
     top: 0;
     right: 100%;
+}
+
+.gists {
+    max-width: 970px;
+}
+
+.gists .gist {
+    border: 1px solid #eee;
+    box-sizing: border-box;
+    display: inline-block;
+    float: left;
+    line-height: normal;
+    margin: 0 10px 10px 0;
+    position: relative;
+    width: 232px;
+    padding: 8px 10px;
+}
+
+.gists .gist--thumbnail {
+    height: 82px;
+    color: #000;
+}
+
+.gists .gist:hover,
+.gists .gist:focus {
+    background-color: #eee;
+    text-decoration: none;
+}
+
+.gists .gist-description {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 55px;
+}
+
+.gists .gist:hover .gist-underline {
+    text-decoration: underline;
 }
