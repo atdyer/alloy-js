@@ -11,6 +11,11 @@ app.get('/:user/:gist_id', (req, res) => res.send(req.params));
 app.get('/favicon.ico', (req, res) => res.status(204));
 app.listen(3000, () => console.log('Example app listening on port 3000'));
 
+let token = 'use env variables...';
+octokit.authenticate({
+    type: 'token',
+    token: token
+});
 
 function user_page (req, res) {
 
@@ -34,6 +39,7 @@ function get_gists (user) {
     return octokit
         .gists
         .getForUser({username: user})
+        .then(print_requests_remaining)
         .then((result) => result['data'])
         .then(filter_alloy_gists)
         .then(filter_gist_data);
@@ -45,6 +51,7 @@ function get_user (user) {
     return octokit
         .users
         .getForUser({username: user})
+        .then(print_requests_remaining)
         .then((result) => result['data'])
         .then(filter_user_data);
 
@@ -72,6 +79,14 @@ function filter_user_data (user) {
         login: user.login,
         name: user.name,
     }
+}
+
+function print_requests_remaining (res) {
+    let reset = new Date(parseInt(res.meta['x-ratelimit-reset']) * 1000);
+    let remaining = res.meta['x-ratelimit-remaining'];
+    let limit = res.meta['x-ratelimit-limit'];
+    console.log(remaining + '/' + limit + ' requests remaining. Reset at ' + reset.toLocaleTimeString());
+    return res;
 }
 
 function error (err) {
