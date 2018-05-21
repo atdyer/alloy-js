@@ -1,0 +1,56 @@
+html(lang='en')
+    head
+        title #{gist.description}
+        style @import url('../style.css');
+        script(src='//d3js.org/d3.v5.min.js')
+
+    body
+        header
+            div(class='column')
+                a(href='/' + user.login)
+                    img(class='avatar' src=user.avatar width='30' height='30')
+                    .
+                        #{user.name}
+                | 's Alloy Instance
+                a(href='https://gist.github.com/' + user.login + '/' + gist.id)  #{gist.id}
+                div(class='date')
+                    | Loading...
+
+        div(class='column')
+            h1 #{gist.description}
+            div(class='gist-license')
+                h2 LICENSE
+                | Released under the
+                a(href=license.url)  #{license.name}
+                | .
+
+        script.
+            var formatDate = d3.timeFormat('%B %-d, %Y'),
+                parseDate = d3.isoParse;
+
+            render(!{JSON.stringify(gist)});
+
+            function render (gist) {
+
+                console.log(gist);
+
+                gist.updated_at = parseDate(gist.updated_at);
+
+                d3.select('.date')
+                    .text('Updated ' + formatDate(gist.updated_at));
+
+                var files = d3.values(gist.files);
+
+                d3.select('.index')
+                    .selectAll('div')
+                    .data(files, function (d) { return d.filename; })
+                    .enter()
+                    .append('code')
+                    .each(function (d) {
+                        var code = d3.select(this);
+                        d3.text(d.raw_url).then(function (data) {
+                            code.text(data);
+                        });
+                    });
+
+            }

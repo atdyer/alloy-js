@@ -1,6 +1,6 @@
-html(lang="en")
+html(lang='en')
     head
-        title #{user.name}'s Alloy Visualizations
+        title #{user.name}'s Alloy Instances
         style @import url('style.css');
         script(src='//d3js.org/d3.v5.min.js')
 
@@ -11,19 +11,19 @@ html(lang="en")
                     img(class='avatar' src=user.avatar width='30' height='30')
                     .
                         #{user.name}
-                | 's Alloy Visualizations
+                | 's Alloy Instances
                 div(class='date')
                     | None yet...
         div(class='column gists')
-            div(class='none', style='display:none') Sorry, #{user.name} has no Alloy Visualizations.
+            div(class='none', style='display:none') Sorry, #{user.name} has no Alloy Instances.
 
         script.
-            var formatDate = d3.timeFormat("%B %-d, %Y"),
+            var formatDate = d3.timeFormat('%B %-d, %Y'),
                 parseDate = d3.isoParse;
 
             render(!{JSON.stringify(gists)});
 
-            function render(gists) {
+            function render (gists) {
 
                 if (!gists.length) {
                     d3.select('.none')
