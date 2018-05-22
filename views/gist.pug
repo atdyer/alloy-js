@@ -1,28 +1,49 @@
 html(lang='en')
     head
         title #{gist.description}
-        style @import url('../style.css');
-        script(src='//d3js.org/d3.v5.min.js')
+        style @import url('/style-blocks.css');
+        script(src='https://d3js.org/d3.v5.min.js')
+        script(src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.8.6/showdown.js" integrity="sha256-WZhItMKyEJQarLzuYWKmNplzBgqEKvlAedjRsChG3JA=" crossorigin="anonymous")
+        script(src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.11.0/js-yaml.js" integrity="sha256-tXpwsPxJo9kMzr6AxcfMzlbqY6YahrPZO9GVquGU0YA=" crossorigin="anonymous")
+        script(src="/alloy.js")
 
     body
         header
-            div(class='column')
+            div.column
                 a(href='/' + user.login)
                     img(class='avatar' src=user.avatar width='30' height='30')
                     .
                         #{user.name}
                 | 's Alloy Instance
-                a(href='https://gist.github.com/' + user.login + '/' + gist.id)  #{gist.id}
-                div(class='date')
+                |
+                a.gist.gist-id.self(href='https://gist.github.com/' + user.login + '/' + gist.id) #{gist.id}
+                div.date
                     | Loading...
 
-        div(class='column')
+        div.column
             h1 #{gist.description}
-            div(class='gist-license')
+            if gist.files['instance.xml']
+                div.gist-instance
+                    svg.alloy-instance
+            if gist.files['README.md']
+                div.gist-readme(data-key='README.md')
+            div.gist-license
                 h2 LICENSE
-                | Released under the
-                a(href=license.url)  #{license.name}
-                | .
+                    a.anchor(name='license' href='#license') #
+                if license !== 'none'
+                    | Released under the
+                    |
+                    a(href=license.url, target='_blank') #{license.name}
+                    |.
+                else
+                    | This instance appears to have
+                    |
+                    a(href='https://choosealicense.com/no-permission/', target='_blank') no license
+                    | . Please contact
+                    |
+                    a(href='https://github.com/' + user.login, target='_blank') the author
+                    |
+                    | to request a license.
 
         script.
             var formatDate = d3.timeFormat('%B %-d, %Y'),
@@ -33,6 +54,7 @@ html(lang='en')
             function render (gist) {
 
                 console.log(gist);
+                showdown.setFlavor('github');
 
                 gist.updated_at = parseDate(gist.updated_at);
 
@@ -41,16 +63,89 @@ html(lang='en')
 
                 var files = d3.values(gist.files);
 
-                d3.select('.index')
-                    .selectAll('div')
-                    .data(files, function (d) { return d.filename; })
-                    .enter()
-                    .append('code')
+                d3.select('.gist-readme')
+                    .data(files, function (d) { return d ? d.filename : this.getAttribute('data-key'); })
                     .each(function (d) {
-                        var code = d3.select(this);
-                        d3.text(d.raw_url).then(function (data) {
-                            code.text(data);
-                        });
+                        var readme = d3.select(this);
+                        d3.text(d.raw_url)
+                            .then(function (text) {
+                                readme.html(new showdown.Converter().makeHtml(text));
+                            });
                     });
+
+                if (gist.files['instance.xml'] && gist.files['instance.yaml']) {
+
+                    let instance_promise = d3.text(gist.files['instance.xml'].raw_url);
+
+                    let style_promise = d3.text(gist.files['instance.yaml'].raw_url)
+                        .then(jsyaml.safeLoad);
+
+                    Promise.all([instance_promise, style_promise])
+                        .then(function (results) {
+
+                            let doc = results[0];
+                            let style = results[1];
+
+                            let p = new DOMParser();
+                            let xml = p.parseFromString(doc, 'application/xml');
+                            let instance = alloy.instance(xml);
+
+                            let svg = d3.select('svg');
+                            let data = alloy.graph_data(instance);
+                            let group_data = alloy.parse_json(style);
+                            let groups = group_data(data);
+                            let render = alloy.layout().groups(groups);
+
+                            render(svg);
+
+                        });
+
+                }
+
+            }
+
+            function set_instance(doc) {
+
+                var p = new DOMParser();
+                var xml = p.parseFromString(doc, 'application/xml');
+                inst = instance(xml);
+
+                var sources = d3.select('#alloy')
+                    .selectAll('div')
+                    .data(inst.sources().entries());
+                console.log(inst.sources());
+
+                var selection = sources.enter()
+                    .append('div');
+
+                selection.append('h2')
+                    .text(function (d) {
+                        return d.key;
+                    });
+
+                selection.append('pre')
+                    .text(function (d) {
+                        return d.value;
+                    });
+
+            }
+
+            function set_style(s) {
+                style = s;
+            }
+
+            function load() {
+
+                if (inst && style) {
+
+                    var svg = d3.select('svg');
+                    var data = graph_data(inst);
+                    var group_data = parse_json(style);
+                    var groups = group_data(data);
+                    var render = layout().groups(groups);
+
+                    render(svg);
+
+                }
 
             }

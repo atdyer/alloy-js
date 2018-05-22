@@ -23,6 +23,20 @@ a {
     color: #000;
 }
 
+a:link {
+    color: steelblue;
+    fill: steelblue;
+}
+
+a:visited {
+    color: #756bb1;
+    fill: #756bb1;
+}
+
+a.self {
+    color: #000;
+}
+
 a:not(:hover) {
     text-decoration: none;
 }
@@ -72,4 +86,21 @@ a:not(:hover) {
 
 .gists .gist:hover .gist-underline {
     text-decoration: underline;
+}
+
+.gist-id,
+pre,
+code,
+textarea {
+    font-family: "Menlo", monospace;
+    line-height: normal;
+}
+
+.gist-id {
+    line-height: 0;
+}
+
+.gist-readme {
+    line-height: 1.5em;
+    max-width: 720px;
 }

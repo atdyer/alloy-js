@@ -258,6 +258,12 @@ iframe {
     font-size: 11px;
 }
 
+.alloy-instance {
+    font-family: 'Menlo', monospace;
+    min-height: 500px;
+    width: 100%;
+}
+
 @media only screen and (max-width: 860px) {
     .index-pop {
         display: none;

@@ -12,5 +12,13 @@
     "pug": "2.0.3",
     "request": "2.87.0",
     "request-promise-native": "1.0.5"
+  },
+  "devDependencies": {
+    "d3": "5.4.0",
+    "rollup": "0.59.2",
+    "rollup-plugin-node-resolve": "3.3.0"
+  },
+  "scripts": {
+    "build-alloy-lib": "rollup -c"
   }
 }
