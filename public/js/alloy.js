@@ -1807,7 +1807,10 @@ function parse_json (json) {
     }
 
     function build_arrow (a) {
-        return arrow()
+        const _arrow = arrow();
+        apply_attrs(_arrow, a['attribute']);
+        apply_styles(_arrow, a['style']);
+        return _arrow
             .link(a['link'])
             .target(a['target']);
     }

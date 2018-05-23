@@ -287,6 +287,15 @@ kbd {
     padding: 0 !important;
 }
 
+.none {
+    color: #999;
+    font-family: monospace;
+    font-size: 1.5em;
+    line-height: 100px;
+    text-align: center;
+    vertical-align: middle;
+}
+
 @media only screen and (max-width: 860px) {
     .index-pop {
         display: none;
