@@ -4,7 +4,7 @@ export default {
     input: 'src/alloy',
     plugins: [node()],
     output: {
-        file: 'public/alloy.js',
+        file: 'public/js/alloy.js',
         format: 'umd',
         name: 'alloy',
         indent: false,

@@ -1,12 +1,22 @@
 html(lang='en')
     head
         title #{user.name}'s Alloy Instances
-        style @import url('/style-blocks.css');
+        link(rel='stylesheet' href='/style-blocks.css')
         script(src='https://d3js.org/d3.v5.min.js')
 
     body
         header
             div.column
+                div.navigation
+                    a(href='/') About
+                    |
+                    | /
+                    |
+                    a(href='/style') Styling
+                    |
+                    | /
+                    |
+                    a(href='https://github.com/atdyer/alloy-js.git') Github
                 a(href=user.html_url)
                     img(class='avatar' src=user.avatar width='30' height='30')
                     .

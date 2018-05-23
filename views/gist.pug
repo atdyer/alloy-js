@@ -1,15 +1,33 @@
 html(lang='en')
+
     head
         title #{gist.description}
-        style @import url('/style-blocks.css');
+        link(rel='stylesheet' href='/style-blocks.css')
+        link(rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github-gist.min.css' integrity='sha256-tAflq+ymku3Khs+I/WcAneIlafYgDiOQ9stIHH985Wo=' crossorigin='anonymous')
         script(src='https://d3js.org/d3.v5.min.js')
-        script(src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.8.6/showdown.js" integrity="sha256-WZhItMKyEJQarLzuYWKmNplzBgqEKvlAedjRsChG3JA=" crossorigin="anonymous")
-        script(src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.11.0/js-yaml.js" integrity="sha256-tXpwsPxJo9kMzr6AxcfMzlbqY6YahrPZO9GVquGU0YA=" crossorigin="anonymous")
-        script(src="/alloy.js")
+        script(src='https://cdnjs.cloudflare.com/ajax/libs/showdown/1.8.6/showdown.js' integrity='sha256-WZhItMKyEJQarLzuYWKmNplzBgqEKvlAedjRsChG3JA=' crossorigin='anonymous')
+        script(src='https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.11.0/js-yaml.js' integrity='sha256-tXpwsPxJo9kMzr6AxcfMzlbqY6YahrPZO9GVquGU0YA=' crossorigin='anonymous')
+        script(src='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js' integrity='sha256-/BfiIkHlHoVihZdc6TFuj7MmJ0TWcWsMXkeDFwhi0zw=' crossorigin='anonymous')
+        script(src='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/languages/yaml.min.js' integrity='sha256-tvm0lHsuUZcOfj/0C9xJTU4OQx5KpUgxUcAXLX5kvwA=' crossorigin='anonymous')
+        script(src='/js/alloy.js')
+        script(src='/js/alloy-lang.js')
+        script(src='/js/render-gist.js')
 
     body
+
         header
+
             div.column
+                div.navigation
+                    a(href='/') About
+                    |
+                    | /
+                    |
+                    a(href='/style') Styling
+                    |
+                    | /
+                    |
+                    a(href='https://github.com/atdyer/alloy-js.git') Github
                 a(href='/' + user.login)
                     img(class='avatar' src=user.avatar width='30' height='30')
                     .
@@ -21,12 +39,36 @@ html(lang='en')
                     | Loading...
 
         div.column
+
+            //- Header with gist description
             h1 #{gist.description}
-            if gist.files['instance.xml']
-                div.gist-instance
-                    svg.alloy-instance
+
+            //- If there's an instance XML file, include the svg for visualization
+            if instance
+                div.gist-instance(style=(dot_alloy['border'] === 'yes' ? 'border: 1px solid #eee' : null))
+                    svg.alloy-instance(style=(dot_alloy['height'] ? 'height: ' + dot_alloy['height'] + 'px' : null))
+
+            //- If there's a README file, include it next
             if gist.files['README.md']
                 div.gist-readme(data-key='README.md')
+
+            //- If there's an alloy instance, include it.
+            if instance && !(dot_alloy['show-model'] === 'no')
+                div.instance-source(data-key=(dot_alloy['instance'] || 'instance.xml'))
+                    h2 #{instance}
+                        a.anchor(name=instance href='#' + instance) #
+                    pre
+                        code ...
+
+            //- If there's a YAML styling file, include it. The default one will not be shown
+            if gist.files['instance.yaml'] && dot_alloy['show-style'] !== 'no'
+                div.gist-source(data-key='instance.yaml')
+                    h2 instance.yaml
+                        a.anchor(name='instance.yaml' href='#instance.yaml') #
+                    pre
+                        code ...
+
+            //- Always include a license
             div.gist-license
                 h2 LICENSE
                     a.anchor(name='license' href='#license') #
@@ -45,107 +87,20 @@ html(lang='en')
                     |
                     | to request a license.
 
+        //- The script will update the updated date and render the gist (including code highlighting)
         script.
-            var formatDate = d3.timeFormat('%B %-d, %Y'),
+
+            showdown.setFlavor('github');
+
+            let gist = !{JSON.stringify(gist)};
+
+            let formatDate = d3.timeFormat('%B %-d, %Y'),
                 parseDate = d3.isoParse;
 
-            render(!{JSON.stringify(gist)});
+            gist.updated_at = parseDate(gist.updated_at);
 
-            function render (gist) {
+            d3.select('.date')
+                .text('Updated ' + formatDate(gist.updated_at));
 
-                console.log(gist);
-                showdown.setFlavor('github');
+            render(gist, !{JSON.stringify(instance)});
 
-                gist.updated_at = parseDate(gist.updated_at);
-
-                d3.select('.date')
-                    .text('Updated ' + formatDate(gist.updated_at));
-
-                var files = d3.values(gist.files);
-
-                d3.select('.gist-readme')
-                    .data(files, function (d) { return d ? d.filename : this.getAttribute('data-key'); })
-                    .each(function (d) {
-                        var readme = d3.select(this);
-                        d3.text(d.raw_url)
-                            .then(function (text) {
-                                readme.html(new showdown.Converter().makeHtml(text));
-                            });
-                    });
-
-                if (gist.files['instance.xml'] && gist.files['instance.yaml']) {
-
-                    let instance_promise = d3.text(gist.files['instance.xml'].raw_url);
-
-                    let style_promise = d3.text(gist.files['instance.yaml'].raw_url)
-                        .then(jsyaml.safeLoad);
-
-                    Promise.all([instance_promise, style_promise])
-                        .then(function (results) {
-
-                            let doc = results[0];
-                            let style = results[1];
-
-                            let p = new DOMParser();
-                            let xml = p.parseFromString(doc, 'application/xml');
-                            let instance = alloy.instance(xml);
-
-                            let svg = d3.select('svg');
-                            let data = alloy.graph_data(instance);
-                            let group_data = alloy.parse_json(style);
-                            let groups = group_data(data);
-                            let render = alloy.layout().groups(groups);
-
-                            render(svg);
-
-                        });
-
-                }
-
-            }
-
-            function set_instance(doc) {
-
-                var p = new DOMParser();
-                var xml = p.parseFromString(doc, 'application/xml');
-                inst = instance(xml);
-
-                var sources = d3.select('#alloy')
-                    .selectAll('div')
-                    .data(inst.sources().entries());
-                console.log(inst.sources());
-
-                var selection = sources.enter()
-                    .append('div');
-
-                selection.append('h2')
-                    .text(function (d) {
-                        return d.key;
-                    });
-
-                selection.append('pre')
-                    .text(function (d) {
-                        return d.value;
-                    });
-
-            }
-
-            function set_style(s) {
-                style = s;
-            }
-
-            function load() {
-
-                if (inst && style) {
-
-                    var svg = d3.select('svg');
-                    var data = graph_data(inst);
-                    var group_data = parse_json(style);
-                    var groups = group_data(data);
-                    var render = layout().groups(groups);
-
-                    render(svg);
-
-                }
-
-            }

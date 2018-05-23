@@ -1,0 +1,29 @@
+html(lang='en')
+    head
+        title About Alloy Instances
+        link(rel='stylesheet' href='/style-blocks.css')
+        link(rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github-gist.min.css' integrity='sha256-tAflq+ymku3Khs+I/WcAneIlafYgDiOQ9stIHH985Wo=' crossorigin='anonymous')
+        script(src='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js' integrity='sha256-/BfiIkHlHoVihZdc6TFuj7MmJ0TWcWsMXkeDFwhi0zw=' crossorigin='anonymous')
+        script(src='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/languages/yaml.min.js' integrity='sha256-tvm0lHsuUZcOfj/0C9xJTU4OQx5KpUgxUcAXLX5kvwA=' crossorigin='anonymous')
+    body
+        header
+            div.column
+                div.navigation
+                    a.self(href='/') About
+                    |
+                    | /
+                    |
+                    a(href='/style') Styling
+                    |
+                    | /
+                    |
+                    a(href='https://github.com/atdyer/alloy-js.git') Github
+                | About Alloy Instances
+                div.date
+                    | Since May 23, 2018
+        div.column
+            h1 Alloy Instances
+            div.gist-readme
+                include:markdown-it(html=true breaks=true) ../ABOUT.md
+        script.
+            hljs.initHighlightingOnLoad();

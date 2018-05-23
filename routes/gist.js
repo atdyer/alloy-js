@@ -26,9 +26,18 @@ function gist_page (req, res) {
             let license = data.license;
             let user = results[0];
 
+            let instance = dot_alloy.instance
+                ? gist.files[dot_alloy.instance]
+                    ? dot_alloy.instance
+                    : null
+                : gist.files['instance.xml']
+                    ? 'instance.xml'
+                    : null;
+
             res.render('gist', {
                 dot_alloy: dot_alloy,
                 gist: gist,
+                instance: instance,
                 license: license,
                 user: user,
             });
@@ -78,7 +87,9 @@ function get_gist (id) {
 
 function get_license (data) {
 
-    let lic = data.dot_alloy ? data.dot_alloy.license : 'none';
+    if (!data.dot_alloy) data.dot_alloy = {};
+    if (!data.dot_alloy.license) data.dot_alloy.license = 'none';
+    let lic = data.dot_alloy.license;
 
     if (lic !== 'none') {
         return license
