@@ -12,4 +12,4 @@ app.use('/', user);
 app.use('/', gist);
 app.set('view engine', 'pug');
 
-app.listen(3000, () => console.log('Example app listening on port 3000'));
+app.listen(process.env.PORT || 3000, () => console.log('Example app listening on port 3000'));
