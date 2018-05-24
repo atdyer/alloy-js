@@ -1,16 +1,16 @@
 Alloy Instances is a simple viewer for sharing [Alloy](http://alloytools.org/) models and instances hosted on [Github Gist](https://gist.github.com). For example, if your Gist URL is:
 
 <code>
-    <a href="http://gist.github.com/atdyer/8d019e744c083a08bb5ac9c2ef181c9c">
-        http://gist.github.com/atdyer/8d019e744c083a08bb5ac9c2ef181c9c
+    <a href="https://gist.github.com/atdyer/8d019e744c083a08bb5ac9c2ef181c9c">
+        https://gist.github.com/atdyer/8d019e744c083a08bb5ac9c2ef181c9c
     </a>
 </code>
 
-Replace the "gist.github.com" with "localhost:3000" in the URL to view it:
+Replace the "gist.github.com" with "alloy-js.herokuapp.com" in the URL to view it:
 
 <code>
-    <a href="http://localhost:3000/atdyer/8d019e744c083a08bb5ac9c2ef181c9c">
-        http://localhost:3000/atdyer/8d019e744c083a08bb5ac9c2ef181c9c
+    <a href="https://alloy-js.herokuapp.com/atdyer/8d019e744c083a08bb5ac9c2ef181c9c">
+        https://alloy-js.herokuapp.com/atdyer/8d019e744c083a08bb5ac9c2ef181c9c
     </a>
 </code>
 
@@ -55,11 +55,11 @@ groups:
 
 All of your Alloy Instances can be viewed on your user page. For example, if your Gist URL is:
 
-<code><a href='http://gist.github.com/atdyer/'>http://gist.github.com/atdyer</a></code>
+<code><a href='https://gist.github.com/atdyer/'>https://gist.github.com/atdyer</a></code>
 
-Replace the "gist.github.com" with "localhost:3000" in the URL to view it:
+Replace the "gist.github.com" with "alloy-js.herokuapp.com" in the URL to view it:
 
-<code><a href='http://localhost:3000/atdyer'>http://localhost:3000/atdyer</a></code>
+<code><a href='https://alloy-js.herokuapp.com/atdyer'>https://alloy-js.herokuapp.com/atdyer</a></code>
 
 Note that the gist description is used as the title of the Alloy Instance in both the user page and the Alloy Instance page.
 
