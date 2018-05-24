@@ -67,6 +67,10 @@ function arrow () {
         return drag;
     };
 
+    _arrow.draggable = function (_) {
+        return arguments.length ? (draggable = !!_, _arrow) : draggable;
+    };
+
     _arrow.link = function (_) {
         return arguments.length ? (link = _, _arrow) : link;
     };

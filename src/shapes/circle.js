@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+import {find_angle} from "../util/arrow-util";
 
 export {circle};
 
@@ -80,6 +81,10 @@ function circle () {
 
     _circle.drag = function () {
         return drag;
+    };
+
+    _circle.draggable = function (_) {
+        return arguments.length ? (draggable = !!_, _circle) : draggable;
     };
 
     _circle.intersection = function (element, path) {

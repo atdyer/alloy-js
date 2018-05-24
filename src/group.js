@@ -31,6 +31,10 @@ function group () {
         return shape.drag();
     };
 
+    _group.draggable = function (_) {
+        return shape.draggable(_);
+    };
+
     _group.index = function (_) {
         return arguments.length ? (index = _, _group) : index;
     };

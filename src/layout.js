@@ -7,10 +7,24 @@ function layout () {
     let selection,
         groups = [];
 
+    let type = 'draggable',
+        sim = d3.forceSimulation()
+            .alphaDecay(0.1)
+            .force('collide', d3.forceCollide(75))
+            .force('link', d3.forceLink())
+            .force('x', d3.forceX())
+            .force('y', d3.forceY())
+            .stop();
+
     function _layout (svg) {
 
         // Sort the groups by index
-        sort_groups();
+        groups.sort(function (a, b) {
+            return a.index() - b.index();
+        });
+
+        // Make sure layout type is up-to-date
+        set_layout_type(type);
 
         // Give each data point an initial position
         initialize_layout(svg, groups);
@@ -38,8 +52,17 @@ function layout () {
         // Respond to events
         groups.forEach(function (g) {
             g.reposition();
-            g.drag().on('drag.layout', dragged);
+            g.drag()
+                .on('start.layout', dragstarted)
+                .on('drag.layout', dragged)
+                .on('end.layout', dragended);
         });
+
+        // Optionally start the simulation
+        if (type === 'simulation') {
+            sim.on('tick', update)
+                .restart();
+        }
 
         return selection;
 
@@ -49,11 +72,26 @@ function layout () {
         return arguments.length ? (groups = _, _layout) : groups;
     };
 
+    _layout.type = function (_) {
+        return arguments.length ? set_layout_type(_) : type;
+    };
 
-    function dragged () {
-        groups.forEach(function (g) {
-            g.reposition();
-        });
+
+    function dragstarted (d) {
+        if (type === 'simulation' && !d3.event.active) sim.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+
+    function dragged (d) {
+        d.fx = d3.event.x;
+        d.fy = d3.event.y;
+    }
+
+    function dragended (d) {
+        if (type === 'simulation' && !d3.event.active) sim.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
     }
 
     function initialize_layout (svg, groups) {
@@ -81,6 +119,18 @@ function layout () {
 
         });
 
+        // Any atom that is given a pre-defined starting position
+        // will be fixed in place during the simulation
+        const width = parseInt(svg.style('width'));
+        const height = parseInt(svg.style('height'));
+        atoms.forEach(function (a) {
+            if (('x' in a) && ('y' in a)) {
+                a.fx = a.x(width);
+                a.fy = a.y(height);
+            }
+        });
+
+        // Run the layout simulation to get initial positions
         const cx = parseInt(svg.style('width')) / 2,
             cy = parseInt(svg.style('height')) / 2;
 
@@ -99,11 +149,45 @@ function layout () {
             simulation.tick();
         }
 
+        // Set up the runtime simulation
+        sim.nodes(atoms);
+        sim.force('x').x(cx);
+        sim.force('y').y(cy);
+        sim.force('link').links(tuples);
+
+        // Clean up
+        atoms.forEach(function (a) {
+            if ('fx' in a) a.fx = null;
+            if ('fy' in a) a.fy = null;
+        });
+
     }
 
-    function sort_groups () {
-        groups.sort(function (a, b) {
-            return a.index() > b.index();
+    function set_layout_type (t) {
+        if (t === 'static') {
+            type = t;
+            groups.forEach(function (g) {
+                g.draggable(false);
+            });
+        }
+        if (t === 'draggable') {
+            type = t;
+            groups.forEach(function (g) {
+                g.draggable(true);
+            });
+        }
+        if (t === 'simulation') {
+            type = t;
+            groups.forEach(function (g) {
+                g.draggable(true);
+            });
+        }
+        return _layout;
+    }
+
+    function update () {
+        groups.forEach(function (g) {
+            g.reposition();
         });
     }
 

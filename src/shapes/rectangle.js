@@ -84,6 +84,10 @@ function rectangle () {
         return drag;
     };
 
+    _rectangle.draggable = function (_) {
+        return arguments.length ? (draggable = !!_, _rectangle) : draggable;
+    };
+
     _rectangle.intersection = function (element, path) {
 
         const target_rect = d3.select(element);

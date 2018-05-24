@@ -76,6 +76,10 @@ function line () {
         return drag;
     };
 
+    _line.draggable = function (_) {
+        return arguments.length ? (draggable = !!_, _line) : draggable;
+    };
+
     _line.reposition = function () {
 
         if (selection)

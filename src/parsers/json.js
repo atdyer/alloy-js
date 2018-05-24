@@ -7,12 +7,20 @@ import {rectangle} from "../shapes/rectangle";
 import {curve_bundle_left, curve_bundle_right} from '../arcs/bundle';
 import {atom_is_sig} from '../filters/atom';
 import {tuple_is_field} from '../filters/tuple';
+import {constant} from "../util/graph-util";
+import {layout} from "../layout";
 
 export {parse_json};
 
 function parse_json (json) {
 
     return function (data) {
+        const groups = bind_data(data);
+        return initialize_layout(data, groups);
+    };
+
+    // Bind data to shapes
+    function bind_data (data) {
 
         const groups = [];
 
@@ -26,8 +34,6 @@ function parse_json (json) {
         // Create groups
         if (json['groups']) {
             entries(json['groups']).forEach(function (o) {
-
-                // var info = d3.map();
 
                 const grp = o.value;
                 const index = grp.index || 0;
@@ -74,12 +80,50 @@ function parse_json (json) {
 
         return groups;
 
-    };
+    }
+
+    function initialize_layout (data, groups) {
+
+        const l = layout().groups(groups);
+
+        const config = json['layout'];
+
+        if (!config)
+            return l;
+        if (typeof config === 'string')
+            return l.type(config);
+
+        if (config['type']) {
+            l.type(config['type']);
+        }
+
+        // Apply positions
+        if (config['positions']) {
+
+            const atoms = data.atoms();
+
+            entries(config['positions']).forEach(function (p) {
+
+                const atm = find_atom(atoms, p.key);
+                const pos = p.value;
+                if (atm) apply_position(atm, pos);
+
+            });
+        }
+
+        return l;
+
+    }
 
     function apply_attrs (item, attributes) {
         entries(attributes).forEach(function (a) {
             item.attr(a.key, a.value);
         });
+    }
+
+    function apply_position (item, position) {
+        if ('x' in position) item.x = build_function(position.x);
+        if ('y' in position) item.y = build_function(position.y);
     }
 
     function apply_styles (item, styles) {
@@ -101,15 +145,23 @@ function parse_json (json) {
         if (d) {
             if (typeof d === 'string')
                 d = {source: d};
-            const _data =
-                d.source === 'atoms' ? data.atoms() :
-                    d.source === 'tuples' ? data.tuples() : [];
+            const _data = d.source === 'atoms'
+                ? data.atoms()
+                : d.source === 'tuples'
+                    ? data.tuples()
+                    : [];
             return {
                 data: _data.filter(build_filter(d.filter)),
                 type: d.source
             };
         }
         return [];
+    }
+
+    function build_function (code) {
+        return typeof code === 'string'
+            ? Function('"use strict"; return ' + code)()
+            : constant(code);
     }
 
     function build_shape (s) {
@@ -220,6 +272,12 @@ function parse_json (json) {
             }
         }
         return entries;
+    }
+
+    function find_atom (atoms, label) {
+        return atoms.find(function (a) {
+            return a.label() === label;
+        });
     }
 
     function find_group (groups, label) {

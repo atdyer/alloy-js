@@ -7,6 +7,7 @@ const gist = require('./routes/gist');
 
 
 app.use(express.static('public'));
+app.get('/favicon.ico', (req, res) => res.status(204));
 app.use('/', about);
 app.use('/', user);
 app.use('/', gist);

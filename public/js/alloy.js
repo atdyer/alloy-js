@@ -184,6 +184,13 @@ function atoms_recursive (sig) {
 
 }
 
+// Creates a function that always returns x
+function constant (x) {
+    return function () {
+        return x;
+    }
+}
+
 // Filters a list of atoms (atoms) by removing any
 // atoms that are in the list of atoms to remove (remove)
 function filter_atoms (atoms, remove) {
@@ -658,10 +665,24 @@ function layout () {
     let selection,
         groups = [];
 
+    let type = 'draggable',
+        sim = d3$1.forceSimulation()
+            .alphaDecay(0.1)
+            .force('collide', d3$1.forceCollide(75))
+            .force('link', d3$1.forceLink())
+            .force('x', d3$1.forceX())
+            .force('y', d3$1.forceY())
+            .stop();
+
     function _layout (svg) {
 
         // Sort the groups by index
-        sort_groups();
+        groups.sort(function (a, b) {
+            return a.index() - b.index();
+        });
+
+        // Make sure layout type is up-to-date
+        set_layout_type(type);
 
         // Give each data point an initial position
         initialize_layout(svg, groups);
@@ -689,8 +710,17 @@ function layout () {
         // Respond to events
         groups.forEach(function (g) {
             g.reposition();
-            g.drag().on('drag.layout', dragged);
+            g.drag()
+                .on('start.layout', dragstarted)
+                .on('drag.layout', dragged)
+                .on('end.layout', dragended);
         });
+
+        // Optionally start the simulation
+        if (type === 'simulation') {
+            sim.on('tick', update)
+                .restart();
+        }
 
         return selection;
 
@@ -700,11 +730,26 @@ function layout () {
         return arguments.length ? (groups = _, _layout) : groups;
     };
 
+    _layout.type = function (_) {
+        return arguments.length ? set_layout_type(_) : type;
+    };
 
-    function dragged () {
-        groups.forEach(function (g) {
-            g.reposition();
-        });
+
+    function dragstarted (d) {
+        if (type === 'simulation' && !d3$1.event.active) sim.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+
+    function dragged (d) {
+        d.fx = d3$1.event.x;
+        d.fy = d3$1.event.y;
+    }
+
+    function dragended (d) {
+        if (type === 'simulation' && !d3$1.event.active) sim.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
     }
 
     function initialize_layout (svg, groups) {
@@ -732,6 +777,18 @@ function layout () {
 
         });
 
+        // Any atom that is given a pre-defined starting position
+        // will be fixed in place during the simulation
+        const width = parseInt(svg.style('width'));
+        const height = parseInt(svg.style('height'));
+        atoms.forEach(function (a) {
+            if (('x' in a) && ('y' in a)) {
+                a.fx = a.x(width);
+                a.fy = a.y(height);
+            }
+        });
+
+        // Run the layout simulation to get initial positions
         const cx = parseInt(svg.style('width')) / 2,
             cy = parseInt(svg.style('height')) / 2;
 
@@ -750,11 +807,45 @@ function layout () {
             simulation.tick();
         }
 
+        // Set up the runtime simulation
+        sim.nodes(atoms);
+        sim.force('x').x(cx);
+        sim.force('y').y(cy);
+        sim.force('link').links(tuples);
+
+        // Clean up
+        atoms.forEach(function (a) {
+            if ('fx' in a) a.fx = null;
+            if ('fy' in a) a.fy = null;
+        });
+
     }
 
-    function sort_groups () {
-        groups.sort(function (a, b) {
-            return a.index() > b.index();
+    function set_layout_type (t) {
+        if (t === 'static') {
+            type = t;
+            groups.forEach(function (g) {
+                g.draggable(false);
+            });
+        }
+        if (t === 'draggable') {
+            type = t;
+            groups.forEach(function (g) {
+                g.draggable(true);
+            });
+        }
+        if (t === 'simulation') {
+            type = t;
+            groups.forEach(function (g) {
+                g.draggable(true);
+            });
+        }
+        return _layout;
+    }
+
+    function update () {
+        groups.forEach(function (g) {
+            g.reposition();
         });
     }
 
@@ -792,6 +883,10 @@ function group () {
 
     _group.drag = function () {
         return shape.drag();
+    };
+
+    _group.draggable = function (_) {
+        return shape.draggable(_);
     };
 
     _group.index = function (_) {
@@ -832,7 +927,8 @@ function arrow () {
     let link,
         target;
 
-    let drag = d3$1.drag();
+    let draggable = false,
+        drag = d3$1.drag();
 
     let attributes = d3$1.map(),
         styles = d3$1.map();
@@ -889,6 +985,10 @@ function arrow () {
         return drag;
     };
 
+    _arrow.draggable = function (_) {
+        return arguments.length ? (draggable = !!_, _arrow) : draggable;
+    };
+
     _arrow.link = function (_) {
         return arguments.length ? (link = _, _arrow) : link;
     };
@@ -936,6 +1036,83 @@ function arrow () {
 
 }
 
+function find_angle (p1, p2) {
+    return Math.atan2(p1.y - p2.y, p1.x - p2.x) * (180 / Math.PI);
+}
+
+function find_intersection (path, is_inside, tolerance) {
+
+    tolerance = tolerance || 0.1;
+
+    const length = path.getTotalLength();
+
+    if (length) {
+
+        let n1 = 0;
+        let n2 = length;
+        let nm = (n1 + n2) / 2;
+
+        const p1 = path.getPointAtLength(n1);
+        const p2 = path.getPointAtLength(n2);
+        let md = path.getPointAtLength(nm);
+        let md_next;
+
+        const is_p1 = is_inside(p1);
+        let is_p2 = is_inside(p2);
+        let is_md;
+
+        // Start point must be outside shape
+        if (is_p1) {
+            return p2;
+        }
+
+        // End point must be inside shape
+        if (!is_p2) {
+            return p2;
+        }
+
+        // Binary search
+        let diff = tolerance;
+        while (!(diff < tolerance)) {
+
+            // Is the midpoint inside the shape?
+            is_md = is_inside(md);
+
+            // Pick a side
+            if (is_md) {
+                n2 = nm;
+            } else {
+                n1 = nm;
+            }
+
+            // New distance along path that midpoint falls
+            nm = (n1 + n2) / 2;
+
+            // Find the next midpoint
+            md_next = path.getPointAtLength(nm);
+
+            // Calculate difference between previous midpoint and new midpoint
+            diff = distance(md_next, md);
+
+            // Set the current midpoint
+            md = md_next;
+
+        }
+
+        return md;
+
+    }
+
+}
+
+function distance (p1, p2) {
+
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    return Math.sqrt(dx*dx + dy*dy);
+
+}
+
 function circle () {
 
     let selection;
@@ -947,7 +1124,8 @@ function circle () {
             return d.y;
         };
 
-    let drag = d3$1.drag()
+    let draggable = true,
+        drag = d3$1.drag()
             .on('drag.circle', dragged);
 
     let attributes = d3$1.map(),
@@ -1015,6 +1193,10 @@ function circle () {
         return drag;
     };
 
+    _circle.draggable = function (_) {
+        return arguments.length ? (draggable = !!_, _circle) : draggable;
+    };
+
     _circle.intersection = function (element, path) {
 
         const target_circle = d3$1.select(element);
@@ -1065,7 +1247,7 @@ function circle () {
 
 
     function dragged(d) {
-        {
+        if (draggable) {
             d.x = d3$1.event.x;
             d.y = d3$1.event.y;
         }
@@ -1090,7 +1272,8 @@ function label () {
             return d.y;
         };
 
-    let drag = d3$1.drag();
+    let draggable = false,
+        drag = d3$1.drag();
 
     let attributes = d3$1.map(),
         styles = d3$1.map();
@@ -1174,6 +1357,10 @@ function label () {
 
     _label.drag = function () {
         return drag;
+    };
+
+    _label.draggable = function (_) {
+        return arguments.length ? (draggable = !!_, _label) : draggable;
     };
 
     _label.reposition = function () {
@@ -1263,7 +1450,8 @@ function line () {
 
     let curve_function = arc_straight;
 
-    let drag = d3$1.drag();
+    let draggable = false,
+        drag = d3$1.drag();
 
     let attributes = d3$1.map(),
         styles = d3$1.map();
@@ -1329,6 +1517,10 @@ function line () {
         return drag;
     };
 
+    _line.draggable = function (_) {
+        return arguments.length ? (draggable = !!_, _line) : draggable;
+    };
+
     _line.reposition = function () {
 
         if (selection)
@@ -1359,83 +1551,6 @@ function line () {
 
 }
 
-function find_angle$1 (p1, p2) {
-    return Math.atan2(p1.y - p2.y, p1.x - p2.x) * (180 / Math.PI);
-}
-
-function find_intersection (path, is_inside, tolerance) {
-
-    tolerance = tolerance || 0.1;
-
-    const length = path.getTotalLength();
-
-    if (length) {
-
-        let n1 = 0;
-        let n2 = length;
-        let nm = (n1 + n2) / 2;
-
-        const p1 = path.getPointAtLength(n1);
-        const p2 = path.getPointAtLength(n2);
-        let md = path.getPointAtLength(nm);
-        let md_next;
-
-        const is_p1 = is_inside(p1);
-        let is_p2 = is_inside(p2);
-        let is_md;
-
-        // Start point must be outside shape
-        if (is_p1) {
-            return p2;
-        }
-
-        // End point must be inside shape
-        if (!is_p2) {
-            return p2;
-        }
-
-        // Binary search
-        let diff = tolerance;
-        while (!(diff < tolerance)) {
-
-            // Is the midpoint inside the shape?
-            is_md = is_inside(md);
-
-            // Pick a side
-            if (is_md) {
-                n2 = nm;
-            } else {
-                n1 = nm;
-            }
-
-            // New distance along path that midpoint falls
-            nm = (n1 + n2) / 2;
-
-            // Find the next midpoint
-            md_next = path.getPointAtLength(nm);
-
-            // Calculate difference between previous midpoint and new midpoint
-            diff = distance(md_next, md);
-
-            // Set the current midpoint
-            md = md_next;
-
-        }
-
-        return md;
-
-    }
-
-}
-
-function distance (p1, p2) {
-
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    return Math.sqrt(dx*dx + dy*dy);
-
-}
-
 function rectangle () {
 
     let selection;
@@ -1450,7 +1565,8 @@ function rectangle () {
         return d.y - height / 2;
     };
 
-    let drag = d3$1.drag()
+    let draggable = true,
+        drag = d3$1.drag()
             .on('drag.circle', dragged);
 
     let attributes = d3$1.map(),
@@ -1516,6 +1632,10 @@ function rectangle () {
         return drag;
     };
 
+    _rectangle.draggable = function (_) {
+        return arguments.length ? (draggable = !!_, _rectangle) : draggable;
+    };
+
     _rectangle.intersection = function (element, path) {
 
         const target_rect = d3$1.select(element);
@@ -1530,7 +1650,7 @@ function rectangle () {
         let intersection = find_intersection(path, is_inside(x, y, w, h));
         if (intersection) {
             intersection = snap_to_edge(intersection, x, y, w, h);
-            intersection.angle = find_angle$1(center, intersection);
+            intersection.angle = find_angle(center, intersection);
             return intersection;
         }
         return {
@@ -1566,7 +1686,7 @@ function rectangle () {
 
 
     function dragged(d) {
-        {
+        if (draggable) {
             d.x = d3$1.event.x;
             d.y = d3$1.event.y;
         }
@@ -1685,6 +1805,12 @@ function tuple_is_field (fld) {
 function parse_json (json) {
 
     return function (data) {
+        const groups = bind_data(data);
+        return initialize_layout(data, groups);
+    };
+
+    // Bind data to shapes
+    function bind_data (data) {
 
         const groups = [];
 
@@ -1698,8 +1824,6 @@ function parse_json (json) {
         // Create groups
         if (json['groups']) {
             entries(json['groups']).forEach(function (o) {
-
-                // var info = d3.map();
 
                 const grp = o.value;
                 const index = grp.index || 0;
@@ -1746,12 +1870,50 @@ function parse_json (json) {
 
         return groups;
 
-    };
+    }
+
+    function initialize_layout (data, groups) {
+
+        const l = layout().groups(groups);
+
+        const config = json['layout'];
+
+        if (!config)
+            return l;
+        if (typeof config === 'string')
+            return l.type(config);
+
+        if (config['type']) {
+            l.type(config['type']);
+        }
+
+        // Apply positions
+        if (config['positions']) {
+
+            const atoms = data.atoms();
+
+            entries(config['positions']).forEach(function (p) {
+
+                const atm = find_atom(atoms, p.key);
+                const pos = p.value;
+                if (atm) apply_position(atm, pos);
+
+            });
+        }
+
+        return l;
+
+    }
 
     function apply_attrs (item, attributes) {
         entries(attributes).forEach(function (a) {
             item.attr(a.key, a.value);
         });
+    }
+
+    function apply_position (item, position) {
+        if ('x' in position) item.x = build_function(position.x);
+        if ('y' in position) item.y = build_function(position.y);
     }
 
     function apply_styles (item, styles) {
@@ -1773,15 +1935,23 @@ function parse_json (json) {
         if (d) {
             if (typeof d === 'string')
                 d = {source: d};
-            const _data =
-                d.source === 'atoms' ? data.atoms() :
-                    d.source === 'tuples' ? data.tuples() : [];
+            const _data = d.source === 'atoms'
+                ? data.atoms()
+                : d.source === 'tuples'
+                    ? data.tuples()
+                    : [];
             return {
                 data: _data.filter(build_filter(d.filter)),
                 type: d.source
             };
         }
         return [];
+    }
+
+    function build_function (code) {
+        return typeof code === 'string'
+            ? Function('"use strict"; return ' + code)()
+            : constant(code);
     }
 
     function build_shape (s) {
@@ -1892,6 +2062,12 @@ function parse_json (json) {
             }
         }
         return entries;
+    }
+
+    function find_atom (atoms, label$$1) {
+        return atoms.find(function (a) {
+            return a.label() === label$$1;
+        });
     }
 
     function find_group (groups, label$$1) {

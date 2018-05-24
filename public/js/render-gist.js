@@ -70,11 +70,9 @@ function render (gist, inst) {
 
                 let svg = d3.select('svg');
                 let data = alloy.graph_data(instance);
-                let group_data = alloy.parse_json(style);
-                let groups = group_data(data);
-                let render = alloy.layout().groups(groups);
-
-                render(svg);
+                let layout = alloy.parse_json(style);
+                let renderer = layout(data);
+                renderer(svg);
 
             });
 

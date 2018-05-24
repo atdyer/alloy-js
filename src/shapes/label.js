@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+import {constant} from "../util/graph-util";
 
 export {label};
 
@@ -101,6 +102,10 @@ function label () {
 
     _label.drag = function () {
         return drag;
+    };
+
+    _label.draggable = function (_) {
+        return arguments.length ? (draggable = !!_, _label) : draggable;
     };
 
     _label.reposition = function () {
