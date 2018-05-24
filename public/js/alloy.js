@@ -744,6 +744,7 @@ function layout () {
     function dragged (d) {
         d.fx = d3$1.event.x;
         d.fy = d3$1.event.y;
+        update();
     }
 
     function dragended (d) {
@@ -822,6 +823,9 @@ function layout () {
     }
 
     function set_layout_type (t) {
+
+        console.log(t);
+
         if (t === 'static') {
             type = t;
             groups.forEach(function (g) {
