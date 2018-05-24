@@ -166,8 +166,6 @@ function layout () {
 
     function set_layout_type (t) {
 
-        console.log(t);
-
         if (t === 'static') {
             type = t;
             groups.forEach(function (g) {
