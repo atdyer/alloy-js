@@ -26,7 +26,7 @@ function label () {
         .set('dy', '0.35em');
 
     styles
-        .set('fill', '#dedede')
+        .set('fill', '#fff')
         .set('font-family', 'monospace')
         .set('font-size', 18)
         .set('font-weight', 'bold')

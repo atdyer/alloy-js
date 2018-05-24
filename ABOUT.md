@@ -1,16 +1,16 @@
 Alloy Instances is a simple viewer for sharing [Alloy](http://alloytools.org/) models and instances hosted on [Github Gist](https://gist.github.com). For example, if your Gist URL is:
 
 <code>
-    <a href="http://gist.github.com/atdyer/d63c0b8c60d2df23c9453cc422ed3295">
-        http://gist.github.com/atdyer/d63c0b8c60d2df23c9453cc422ed3295
+    <a href="http://gist.github.com/atdyer/8d019e744c083a08bb5ac9c2ef181c9c">
+        http://gist.github.com/atdyer/8d019e744c083a08bb5ac9c2ef181c9c
     </a>
 </code>
 
 Replace the "gist.github.com" with "localhost:3000" in the URL to view it:
 
 <code>
-    <a href="http://localhost:3000/atdyer/d63c0b8c60d2df23c9453cc422ed3295">
-        http://localhost:3000/atdyer/d63c0b8c60d2df23c9453cc422ed3295
+    <a href="http://localhost:3000/atdyer/8d019e744c083a08bb5ac9c2ef181c9c">
+        http://localhost:3000/atdyer/8d019e744c083a08bb5ac9c2ef181c9c
     </a>
 </code>
 
