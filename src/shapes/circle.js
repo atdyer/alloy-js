@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import {find_angle} from "../util/arrow-util";
+import {label} from "./label";
 
 export {circle};
 
@@ -7,16 +8,15 @@ function circle () {
 
     let selection;
 
-    let x = function (d) {
-            return d.x;
-        },
-        y = function (d) {
-            return d.y;
-        };
+    let x = x_center,
+        y = y_center,
+        anchor = anchor_center;
 
     let draggable = true,
         drag = d3.drag()
             .on('drag.circle', dragged);
+
+    let labeller = label();
 
     let attributes = d3.map(),
         styles = d3.map();
@@ -30,6 +30,10 @@ function circle () {
         .set('stroke-width', 2);
 
     function _circle (g, data) {
+
+        data.forEach(function (d) {
+            d._shape = _circle;
+        });
 
         selection = g
             .selectAll('circle')
@@ -57,9 +61,17 @@ function circle () {
 
         selection.call(drag);
 
+        if (labeller) {
+            labeller(g, selection);
+        }
+
         return selection;
 
     }
+
+    _circle.anchor = function (_) {
+        return arguments.length ? (anchor = _, _circle) : anchor;
+    };
 
     _circle.attr = function (name, value) {
         return arguments.length > 1
@@ -72,19 +84,19 @@ function circle () {
                 : attributes.get(name);
     };
 
-    _circle.element = function (datum) {
-        if (selection)
-            return selection.nodes().find(function (element) {
-                return d3.select(element).datum() === datum;
-            });
-    };
-
     _circle.drag = function () {
         return drag;
     };
 
     _circle.draggable = function (_) {
         return arguments.length ? (draggable = !!_, _circle) : draggable;
+    };
+
+    _circle.element = function (datum) {
+        if (selection)
+            return selection.nodes().find(function (element) {
+                return d3.select(element).datum() === datum;
+            });
     };
 
     _circle.intersection = function (element, path) {
@@ -112,11 +124,17 @@ function circle () {
 
     };
 
+    _circle.label = function (_) {
+        return arguments.length ? (labeller = _, _circle) : labeller;
+    };
+
     _circle.reposition = function () {
         if (selection)
             selection
                 .attr('cx', x)
                 .attr('cy', y);
+        if (labeller)
+            labeller.reposition();
         return _circle;
     };
 
@@ -136,11 +154,26 @@ function circle () {
     };
 
 
-    function dragged(d) {
+    function anchor_center (d) {
+        return {
+            x: x(d),
+            y: y(d)
+        }
+    }
+
+    function dragged (d) {
         if (draggable) {
             d.x = d3.event.x;
             d.y = d3.event.y;
         }
+    }
+
+    function x_center (d) {
+        return d.x;
+    }
+
+    function y_center (d) {
+        return d.y;
     }
 
 

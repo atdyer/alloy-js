@@ -1,0 +1,9 @@
+groups:
+  edges:
+    index: 0
+    shape: line
+    data: tuples
+  nodes:
+    index: 1
+    shape: circle
+    data: atoms

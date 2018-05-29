@@ -1,7 +1,5 @@
 import {group} from '../group';
-import {arrow} from '../shapes/arrow';
 import {circle} from '../shapes/circle';
-import {label} from '../shapes/label';
 import {line} from '../shapes/line';
 import {rectangle} from "../shapes/rectangle";
 import {curve_bundle_left, curve_bundle_right} from '../arcs/bundle';
@@ -44,39 +42,19 @@ function parse_json (json) {
                     .index(index)
                     .label(label);
 
-                // Build the shape
+                // Build the shape and data
                 const s = build_shape(grp.shape);
-                g.shape(s.shape);
-
-                // Build the data
                 const d = build_data(data, grp.data);
-                g.data(d.data);
 
-                groups.push(g);
+                if (s && d) {
+
+                    g.shape(s).data(d);
+                    groups.push(g);
+
+                }
 
             });
         }
-
-        // Resolve dependencies
-        groups.forEach(function (grp) {
-
-            const shape = grp.shape();
-
-            if (shape.type() === 'arrow') {
-                const link_label = shape.link();
-                const target_label = shape.target();
-                const link_group = find_group(groups, link_label);
-                const target_group = find_group(groups, target_label);
-                if (link_group && target_group) {
-                    const link_shape = link_group.shape();
-                    const target_shape = target_group.shape();
-                    shape
-                        .link(link_shape)
-                        .target(target_shape);
-                }
-            }
-
-        });
 
         return groups;
 
@@ -150,10 +128,7 @@ function parse_json (json) {
                 : d.source === 'tuples'
                     ? data.tuples()
                     : [];
-            return {
-                data: _data.filter(build_filter(d.filter)),
-                type: d.source
-            };
+            return _data.filter(build_filter(d.filter));
         }
         return [];
     }
@@ -170,64 +145,42 @@ function parse_json (json) {
             if (typeof s === 'string')
                 s = {type: s};
 
-            const shape =
-                s.type === 'arrow' ? build_arrow(s) :
-                    s.type === 'circle' ? build_circle(s) :
-                        s.type === 'label' ? build_label(s) :
-                            s.type === 'line' ? build_line(s) :
-                                s.type === 'rectangle' ? build_rectangle(s) :
-                                    null;
-
-            return {
-                type: s.type,
-                shape: shape
-            };
+            return (
+                s.type === 'circle' ? build_circle(s) :
+                    s.type === 'line' ? build_line(s) :
+                        s.type === 'rectangle' ? build_rectangle(s) :
+                            null
+            );
 
         }
-    }
-
-    function build_arrow (a) {
-        const _arrow = arrow();
-        apply_attrs(_arrow, a['attribute']);
-        apply_styles(_arrow, a['style']);
-        return _arrow
-            .link(a['link'])
-            .target(a['target']);
     }
 
     function build_circle (c) {
         const _circle = circle();
         apply_attrs(_circle, c['attribute']);
         apply_styles(_circle, c['style']);
+        build_label(_circle, c['label']);
         return _circle;
     }
 
-    function build_label (l) {
-
-        const _label = label();
-        const aliases = l['alias'];
-
-        if (aliases) {
-            entries(aliases).forEach(function (alias) {
-                _label.alias(alias.key, '' + alias.value);
-            });
+    function build_label(s, l) {
+        if (l) {
+            if (l === 'no') {
+                s.label(null);
+            } else {
+                apply_attrs(s.label(), l['attribute']);
+                apply_styles(s.label(), l['style']);
+            }
         }
-
-        apply_attrs(_label, l['attribute']);
-        apply_styles(_label, l['style']);
-
-        return _label;
-
     }
 
     function build_line (l) {
         const _line = line();
         const curve = l['curve'];
-
         if (curve) _line.curve(build_curve(curve));
-
         apply_attrs(_line, l['attribute']);
         apply_styles(_line, l['style']);
+        build_label(_line, l['label']);
         return _line;
     }
 
@@ -277,12 +230,6 @@ function parse_json (json) {
     function find_atom (atoms, label) {
         return atoms.find(function (a) {
             return a.label() === label;
-        });
-    }
-
-    function find_group (groups, label) {
-        return groups.find(function (g) {
-            return g.label() === label;
         });
     }
 

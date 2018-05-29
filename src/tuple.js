@@ -19,6 +19,10 @@ function tuple (atoms, field) {
         return _field;
     };
 
+    _tuple.id = function () {
+        return _tuple.field().label() + '[' + _tuple.atoms().map(a => a.label()) + ']';
+    };
+
     return _tuple;
 
 }

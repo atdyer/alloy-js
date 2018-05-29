@@ -22,6 +22,6 @@
   },
   "scripts": {
     "build-alloy-lib": "rollup -c",
-    "start": "nf start"
+    "start": "NODE_ENV=dev nf start"
   }
 }

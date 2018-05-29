@@ -23,6 +23,10 @@ function tuple (atoms, field) {
         return _field;
     };
 
+    _tuple.id = function () {
+        return _tuple.field().label() + '[' + _tuple.atoms().map(a => a.label()) + ']';
+    };
+
     return _tuple;
 
 }
@@ -81,7 +85,7 @@ function apply_attributes (atoms, tuples) {
 
     tuples.forEach(function (tup) {
         for (let key in tup) {
-            if (tup.hasOwnProperty(key) && key !== 'arity' && key !== 'atoms' && key !== 'field') {
+            if (tup.hasOwnProperty(key) && key !== 'arity' && key !== 'atoms' && key !== 'field' && key !== 'id') {
                 delete tup[key];
             }
         }
@@ -922,122 +926,6 @@ function group () {
 
 }
 
-function arrow () {
-
-    let selection;
-
-    let link,
-        target;
-
-    let draggable = false,
-        drag = d3$1.drag();
-
-    let attributes = d3$1.map(),
-        styles = d3$1.map();
-
-    attributes
-        .set('d', 'M -10 -5 L 0 0 L -10 5 z');
-
-    styles
-        .set('fill', '#555')
-        .set('stroke', '#555')
-        .set('stroke-width', 2);
-
-    function _arrow (g, data) {
-
-        selection = g
-            .selectAll('path')
-            .data(data);
-
-        selection
-            .exit()
-            .remove();
-
-        selection = selection
-            .enter()
-            .append('path')
-            .merge(selection);
-
-        attributes.each(function (value, key) {
-            selection.attr(key, value);
-        });
-
-        styles.each(function (value, key) {
-            selection.style(key, value);
-        });
-
-        selection.call(drag);
-
-        return selection;
-
-    }
-
-    _arrow.attr = function (name, value) {
-        return arguments.length > 1
-            ? (selection
-                ? selection.attr(name, value)
-                : attributes.set(name, value),
-                _arrow)
-            : selection
-                ? selection.attr(name)
-                : attributes.get(name);
-    };
-
-    _arrow.drag = function () {
-        return drag;
-    };
-
-    _arrow.draggable = function (_) {
-        return arguments.length ? (draggable = !!_, _arrow) : draggable;
-    };
-
-    _arrow.link = function (_) {
-        return arguments.length ? (link = _, _arrow) : link;
-    };
-
-    _arrow.reposition = function () {
-
-        selection.attr('transform', function (datum) {
-
-            // Get the visual element of the link (will be a path)
-            const link_element = link.element(datum);
-
-            // Get the visual element the arrow will be pointing to (e.g. circle, rect)
-            const target_element = target.element(datum.target);
-
-            // Calculate intersection point and angle
-            if (link_element && target_element) {
-                const intersection = target.intersection(target_element, link_element);
-                return 'translate(' + intersection.x + ',' + intersection.y + ') rotate(' + intersection.angle + ')';
-            }
-
-        });
-
-    };
-
-    _arrow.style = function (name, value) {
-        return arguments.length > 1
-            ? (selection
-                ? selection.style(name, value)
-                : styles.set(name, value),
-                _arrow)
-            : selection
-                ? selection.style(name)
-                : styles.get(name);
-    };
-
-    _arrow.target = function (_) {
-        return arguments.length ? (target = _, _arrow) : target;
-    };
-
-    _arrow.type = function () {
-        return 'arrow';
-    };
-
-    return _arrow;
-
-}
-
 function find_angle (p1, p2) {
     return Math.atan2(p1.y - p2.y, p1.x - p2.x) * (180 / Math.PI);
 }
@@ -1115,20 +1003,186 @@ function distance (p1, p2) {
 
 }
 
+function label () {
+
+    let selection;
+
+    let anchor_accessor,
+        text_accessor;
+
+    let aliases = d3$1.map(),
+        attributes = d3$1.map(),
+        styles = d3$1.map();
+
+    attributes
+        .set('dy', '0.35em');
+
+    styles
+        .set('fill', '#fff')
+        .set('font-family', 'monospace')
+        .set('font-size', 18)
+        .set('font-weight', 'bold')
+        .set('pointer-events', 'none')
+        .set('text-anchor', 'middle')
+        .set('-webkit-user-select', 'none')
+        .set('-moz-user-select', 'none')
+        .set('-ms-user-select', 'none')
+        .set('user-select', 'none');
+
+
+    function _label (g, s) {
+
+        // Labels are attached to visual elements
+        let data = s.nodes();
+
+        // Attempt to set the accessors based on the
+        // type of visual element
+        if (data.length) {
+            guess_defaults(data[0]);
+        }
+
+        selection = g
+            .selectAll('text')
+            .data(data);
+
+        selection
+            .exit()
+            .remove();
+
+        selection = selection
+            .enter()
+            .append('text')
+            .merge(selection);
+
+        attributes.each(function (value, key) {
+            selection.attr(key, value);
+        });
+
+        styles.each(function (value, key) {
+            selection.style(key, value);
+        });
+
+        selection.text(alias);
+
+        return selection;
+
+    }
+
+
+    _label.anchor = function (_) {
+        return arguments.length ? (anchor_accessor = _, _label) : anchor_accessor;
+    };
+
+    _label.attr = function (name, value) {
+        return arguments.length > 1
+            ? (selection
+                ? selection.attr(name, value)
+                : attributes.set(name, value),
+                _label)
+            : selection
+                ? selection.attr(name)
+                : attributes.get(name);
+    };
+
+    _label.reposition = function () {
+        if (selection) {
+            selection.each(function (d) {
+                let s = d3$1.select(d);
+                let p = anchor_accessor.call(d, s.datum());
+                d3$1.select(this)
+                    .attr('x', p.x)
+                    .attr('y', p.y);
+            });
+        }
+    };
+
+    _label.style = function (name, value) {
+        return arguments.length > 1
+            ? (selection
+                ? selection.style(name, value)
+                : styles.set(name, value),
+                _label)
+            : selection
+                ? selection.style(name)
+                : styles.get(name);
+    };
+
+    _label.text = function (_) {
+        return arguments.length ? (text_accessor = _, _label) : text_accessor;
+    };
+
+    _label.type = function () {
+        return 'label';
+    };
+
+
+    function alias (d) {
+        let s = d3$1.select(d);
+        let text = text_accessor.call(d, s.datum());
+        return aliases.get(text) || text;
+    }
+
+    function guess_defaults (node) {
+
+        if (node.tagName.toLowerCase() === 'path') {
+
+            anchor_accessor = anchor_accessor || path_anchor_accessor;
+            text_accessor = text_accessor || path_text_accessor;
+
+        } else {
+
+            anchor_accessor = anchor_accessor || shape_anchor_accessor;
+            text_accessor = text_accessor || shape_text_accessor;
+
+        }
+
+    }
+
+
+    return _label;
+
+}
+
+
+//
+// For anchor and text accessors:
+// - d: the datum associated with the shape being labeled (e.g. atom, tuple)
+// - this: the DOM element of the shape being labeled (e.g. path, rect)
+//
+
+function path_anchor_accessor (d) {
+    let l = this.getTotalLength();
+    return this.getPointAtLength(0.5 * l);
+}
+
+function path_text_accessor (d) {
+    // return d.id();
+    let label = d.field().label();
+    let intermediate = d.atoms().slice(1, -1);
+    return intermediate.length ? label + ' [' + intermediate.map(a => a.label()) + ']' : label;
+}
+
+function shape_anchor_accessor (d) {
+    return d;   // Note: each datum should have an x and y value already
+}
+
+function shape_text_accessor (d) {
+    return d.label();
+}
+
 function circle () {
 
     let selection;
 
-    let x = function (d) {
-            return d.x;
-        },
-        y = function (d) {
-            return d.y;
-        };
+    let x = x_center,
+        y = y_center,
+        anchor = anchor_center;
 
     let draggable = true,
         drag = d3$1.drag()
             .on('drag.circle', dragged);
+
+    let labeller = label();
 
     let attributes = d3$1.map(),
         styles = d3$1.map();
@@ -1142,6 +1196,10 @@ function circle () {
         .set('stroke-width', 2);
 
     function _circle (g, data) {
+
+        data.forEach(function (d) {
+            d._shape = _circle;
+        });
 
         selection = g
             .selectAll('circle')
@@ -1169,9 +1227,17 @@ function circle () {
 
         selection.call(drag);
 
+        if (labeller) {
+            labeller(g, selection);
+        }
+
         return selection;
 
     }
+
+    _circle.anchor = function (_) {
+        return arguments.length ? (anchor = _, _circle) : anchor;
+    };
 
     _circle.attr = function (name, value) {
         return arguments.length > 1
@@ -1184,19 +1250,19 @@ function circle () {
                 : attributes.get(name);
     };
 
-    _circle.element = function (datum) {
-        if (selection)
-            return selection.nodes().find(function (element) {
-                return d3$1.select(element).datum() === datum;
-            });
-    };
-
     _circle.drag = function () {
         return drag;
     };
 
     _circle.draggable = function (_) {
         return arguments.length ? (draggable = !!_, _circle) : draggable;
+    };
+
+    _circle.element = function (datum) {
+        if (selection)
+            return selection.nodes().find(function (element) {
+                return d3$1.select(element).datum() === datum;
+            });
     };
 
     _circle.intersection = function (element, path) {
@@ -1224,11 +1290,17 @@ function circle () {
 
     };
 
+    _circle.label = function (_) {
+        return arguments.length ? (labeller = _, _circle) : labeller;
+    };
+
     _circle.reposition = function () {
         if (selection)
             selection
                 .attr('cx', x)
                 .attr('cy', y);
+        if (labeller)
+            labeller.reposition();
         return _circle;
     };
 
@@ -1248,193 +1320,30 @@ function circle () {
     };
 
 
-    function dragged(d) {
+    function anchor_center (d) {
+        return {
+            x: x(d),
+            y: y(d)
+        }
+    }
+
+    function dragged (d) {
         if (draggable) {
             d.x = d3$1.event.x;
             d.y = d3$1.event.y;
         }
     }
 
+    function x_center (d) {
+        return d.x;
+    }
+
+    function y_center (d) {
+        return d.y;
+    }
+
 
     return _circle;
-
-}
-
-function label () {
-
-    let selection;
-
-    let accessor = label_accessor;
-    let aliases = d3$1.map();
-
-    let x = function (d) {
-            return d.x;
-        },
-        y = function (d) {
-            return d.y;
-        };
-
-    let draggable = false,
-        drag = d3$1.drag();
-
-    let attributes = d3$1.map(),
-        styles = d3$1.map();
-
-    attributes
-        .set('dy', '0.35em');
-
-    styles
-        .set('fill', '#fff')
-        .set('font-family', 'monospace')
-        .set('font-size', 18)
-        .set('font-weight', 'bold')
-        .set('pointer-events', 'none')
-        .set('text-anchor', 'middle')
-        .set('-webkit-user-select', 'none')
-        .set('-moz-user-select', 'none')
-        .set('-ms-user-select', 'none')
-        .set('user-select', 'none');
-
-    function _label (g, data) {
-
-        selection = g
-            .selectAll('text')
-            .data(data);
-
-        selection
-            .exit()
-            .remove();
-
-        selection = selection
-            .enter()
-            .append('text')
-            .merge(selection);
-
-        attributes.each(function (value, key) {
-            selection.attr(key, value);
-        });
-
-        styles.each(function (value, key) {
-            selection.style(key, value);
-        });
-
-        selection.text(alias);
-        selection.call(drag);
-
-        return selection;
-
-    }
-
-    _label.accessor = function (_) {
-        return arguments.length ? (accessor = _, _label) : accessor;
-    };
-
-    _label.alias = function (_) {
-        if (arguments.length === 1) return aliases.get(arguments[0]);
-        if (arguments.length === 2) {
-            arguments[1] === null ?
-                aliases.remove(arguments[0]) :
-                aliases.set(arguments[0], arguments[1]);
-        }
-        return _label;
-    };
-
-    _label.attr = function (name, value) {
-        return arguments.length > 1
-            ? (selection
-                ? selection.attr(name, value)
-                : attributes.set(name, value),
-                _label)
-            : selection
-                ? selection.attr(name)
-                : attributes.get(name);
-    };
-
-    _label.element = function (datum) {
-        if (selection)
-            return selection.nodes().find(function (element) {
-                return d3$1.select(element).datum() === datum;
-            });
-    };
-
-    _label.drag = function () {
-        return drag;
-    };
-
-    _label.draggable = function (_) {
-        return arguments.length ? (draggable = !!_, _label) : draggable;
-    };
-
-    _label.reposition = function () {
-        if (selection)
-            selection
-                .attr('x', x)
-                .attr('y', y);
-        return _label;
-    };
-
-    _label.style = function (name, value) {
-        return arguments.length > 1
-            ? (selection
-                ? selection.style(name, value)
-                : styles.set(name, value),
-                _label)
-            : selection
-                ? selection.style(name)
-                : styles.get(name);
-    };
-
-    _label.text = function (_) {
-        if (arguments.length) {
-            typeof _ === 'function'
-                ? accessor = _
-                : accessor = constant(_);
-            if (selection)
-                selection.text(alias);
-            return _label;
-        }
-        return accessor;
-    };
-
-    _label.type = function (_) {
-        return 'label';
-    };
-
-    _label.x = function (_) {
-        if (arguments.length) {
-            if (typeof _ === 'function') {
-                x = _;
-            } else {
-                x = constant(_);
-            }
-            return _label;
-        }
-        return x;
-    };
-
-    _label.y = function (_) {
-        if (arguments.length) {
-            if (typeof _ === 'function') {
-                y = _;
-            } else {
-                y = constant(_);
-            }
-            return _label;
-        }
-        return y;
-    };
-
-
-    function alias (d) {
-        return aliases.get(accessor(d)) || accessor(d);
-    }
-
-    function label_accessor (d) {
-        return d.label();
-    }
-
-
-    return _label;
 
 }
 
@@ -1446,14 +1355,129 @@ function arc_straight (d) {
     ]);
 }
 
+function arrow (l) {
+
+    let selection;
+
+    let draggable = false,
+        drag = d3$1.drag();
+
+    let attributes = d3$1.map(),
+        styles = d3$1.map();
+
+    attributes
+        .set('d', 'M -10 -5 L 0 0 L -10 5 z');
+
+    styles
+        .set('fill', '#555')
+        .set('stroke', '#555')
+        .set('stroke-width', 2);
+
+    function _arrow (g, data) {
+
+        selection = g
+            .selectAll('.arrow')
+            .data(data);
+
+        selection
+            .exit()
+            .remove();
+
+        selection = selection
+            .enter()
+            .append('path')
+            .attr('class', 'arrow')
+            .merge(selection);
+
+        attributes.each(function (value, key) {
+            selection.attr(key, value);
+        });
+
+        styles.each(function (value, key) {
+            selection.style(key, value);
+        });
+
+        selection.call(drag);
+
+        return selection;
+
+    }
+
+    _arrow.attr = function (name, value) {
+        return arguments.length > 1
+            ? (selection
+                ? selection.attr(name, value)
+                : attributes.set(name, value),
+                _arrow)
+            : selection
+                ? selection.attr(name)
+                : attributes.get(name);
+    };
+
+    _arrow.drag = function () {
+        return drag;
+    };
+
+    _arrow.draggable = function (_) {
+        return arguments.length ? (draggable = !!_, _arrow) : draggable;
+    };
+
+    _arrow.reposition = function () {
+
+        selection.attr('transform', function (datum) {
+
+            // Get the visual element of the link (will be a path)
+            const path = l.element(datum);
+
+            if (path && datum.target._shape) {
+
+                // Get the visual element the arrow will be pointing to (e.g. circle, rect)
+                const target_element = datum.target._shape.element(datum.target);
+
+                // Calculate intersection point and angle
+                const intersection = datum.target._shape.intersection(target_element, path);
+
+                // Create tranlate/rotate string
+                return 'translate(' + intersection.x + ',' + intersection.y + ') rotate(' + intersection.angle + ')';
+            }
+
+        });
+
+    };
+
+    _arrow.style = function (name, value) {
+        return arguments.length > 1
+            ? (selection
+                ? selection.style(name, value)
+                : styles.set(name, value),
+                _arrow)
+            : selection
+                ? selection.style(name)
+                : styles.get(name);
+    };
+
+    _arrow.type = function () {
+        return 'arrow';
+    };
+
+    return _arrow;
+
+}
+
 function line () {
 
     let selection;
 
+    let arr = arrow(_line);
     let curve_function = arc_straight;
 
     let draggable = false,
         drag = d3$1.drag();
+
+    let labeller = label()
+        .style('fill', 'black')
+        .style('font-weight', 'lighter')
+        .style('font-size', '10px');
 
     let attributes = d3$1.map(),
         styles = d3$1.map();
@@ -1466,7 +1490,7 @@ function line () {
     function _line (g, data) {
 
         selection = g
-            .selectAll('path')
+            .selectAll('.line')
             .data(data);
 
         selection
@@ -1476,6 +1500,8 @@ function line () {
         selection = selection
             .enter()
             .append('path')
+            .attr('class', 'line')
+            .attr('id', t => t.id())
             .merge(selection);
 
         attributes.each(function (value, key) {
@@ -1488,12 +1514,19 @@ function line () {
 
         selection.call(drag);
 
+        if (arr)
+            arr(g, data);
+
+        if (labeller)
+            labeller(g, selection);
+
         return selection;
 
     }
 
 
     _line.attr = function (name, value) {
+        arr.attr(name, value);
         return arguments.length > 1
             ? (selection
                 ? selection.attr(name, value)
@@ -1523,17 +1556,29 @@ function line () {
         return arguments.length ? (draggable = !!_, _line) : draggable;
     };
 
+    _line.label = function (_) {
+        return arguments.length ? (labeller = !!_, _line) : labeller;
+    };
+
     _line.reposition = function () {
 
         if (selection)
             selection
                 .attr('d', curve_function);
 
+        if (arr)
+            arr.reposition();
+
+        if (labeller)
+            labeller.reposition();
+
         return _line;
 
     };
 
     _line.style = function (name, value) {
+        arr.style(name, value);
+        if (name === 'stroke') arr.style('fill', value);
         return arguments.length > 1
             ? (selection
                 ? selection.style(name, value)
@@ -1548,7 +1593,6 @@ function line () {
         return 'line';
     };
 
-
     return _line;
 
 }
@@ -1557,19 +1601,16 @@ function rectangle () {
 
     let selection;
 
-    let x = function (d) {
-        const width = +d3$1.select(this).attr('width') || 0;
-        return d.x - width / 2;
-    };
-
-    let y = function (d) {
-        const height = +d3$1.select(this).attr('height') || 0;
-        return d.y - height / 2;
-    };
+    let x = x_center,
+        y = y_center,
+        anchor = anchor_center;
 
     let draggable = true,
         drag = d3$1.drag()
             .on('drag.circle', dragged);
+
+    let labelled = true,
+        labels;
 
     let attributes = d3$1.map(),
         styles = d3$1.map();
@@ -1584,6 +1625,10 @@ function rectangle () {
         .set('stroke-width', 2);
 
     function _rectangle (g, data) {
+
+        data.forEach(function (d) {
+            d._shape = _rectangle;
+        });
 
         selection = g
             .selectAll('rect')
@@ -1608,9 +1653,18 @@ function rectangle () {
 
         selection.call(drag);
 
+        if (labelled) {
+            labels = label();
+            labels(g, selection);
+        }
+
         return selection;
 
     }
+
+    _rectangle.anchor = function (_) {
+        return arguments.length ? (anchor = _, _rectangle) : anchor;
+    };
 
     _rectangle.attr = function (name, value) {
         return arguments.length > 1
@@ -1645,10 +1699,8 @@ function rectangle () {
         const h = parseInt(target_rect.attr('height'));
         const x = parseInt(target_rect.attr('x'));
         const y = parseInt(target_rect.attr('y'));
-        const center = {
-            x: x + w / 2,
-            y: y + h / 2
-        };
+        const l = path.getTotalLength();
+        const center = path.getPointAtLength(l);
         let intersection = find_intersection(path, is_inside(x, y, w, h));
         if (intersection) {
             intersection = snap_to_edge(intersection, x, y, w, h);
@@ -1663,11 +1715,17 @@ function rectangle () {
 
     };
 
+    _rectangle.labelled = function (_) {
+        return arguments.length ? (labelled = !!_, _rectangle) : labelled;
+    };
+
     _rectangle.reposition = function () {
         if (selection)
             selection
                 .attr('x', x)
                 .attr('y', y);
+        if (labels)
+            labels.reposition();
         return _rectangle;
     };
 
@@ -1686,6 +1744,10 @@ function rectangle () {
         return 'rectangle';
     };
 
+
+    function anchor_center (d) {
+        return d;
+    }
 
     function dragged(d) {
         if (draggable) {
@@ -1723,6 +1785,16 @@ function rectangle () {
             y: yp
         };
 
+    }
+
+    function x_center (d) {
+        const width = +d3$1.select(this).attr('width') || 0;
+        return d.x - width / 2;
+    }
+
+    function y_center (d) {
+        const height = +d3$1.select(this).attr('height') || 0;
+        return d.y - height / 2;
     }
 
     return _rectangle;
@@ -1829,46 +1901,26 @@ function parse_json (json) {
 
                 const grp = o.value;
                 const index = grp.index || 0;
-                const label$$1 = o.key || 'alloy-group-' + index;
+                const label = o.key || 'alloy-group-' + index;
 
                 // Create the group
                 const g = group()
                     .index(index)
-                    .label(label$$1);
+                    .label(label);
 
-                // Build the shape
+                // Build the shape and data
                 const s = build_shape(grp.shape);
-                g.shape(s.shape);
-
-                // Build the data
                 const d = build_data(data, grp.data);
-                g.data(d.data);
 
-                groups.push(g);
+                if (s && d) {
+
+                    g.shape(s).data(d);
+                    groups.push(g);
+
+                }
 
             });
         }
-
-        // Resolve dependencies
-        groups.forEach(function (grp) {
-
-            const shape = grp.shape();
-
-            if (shape.type() === 'arrow') {
-                const link_label = shape.link();
-                const target_label = shape.target();
-                const link_group = find_group(groups, link_label);
-                const target_group = find_group(groups, target_label);
-                if (link_group && target_group) {
-                    const link_shape = link_group.shape();
-                    const target_shape = target_group.shape();
-                    shape
-                        .link(link_shape)
-                        .target(target_shape);
-                }
-            }
-
-        });
 
         return groups;
 
@@ -1942,10 +1994,7 @@ function parse_json (json) {
                 : d.source === 'tuples'
                     ? data.tuples()
                     : [];
-            return {
-                data: _data.filter(build_filter(d.filter)),
-                type: d.source
-            };
+            return _data.filter(build_filter(d.filter));
         }
         return [];
     }
@@ -1962,64 +2011,42 @@ function parse_json (json) {
             if (typeof s === 'string')
                 s = {type: s};
 
-            const shape =
-                s.type === 'arrow' ? build_arrow(s) :
-                    s.type === 'circle' ? build_circle(s) :
-                        s.type === 'label' ? build_label(s) :
-                            s.type === 'line' ? build_line(s) :
-                                s.type === 'rectangle' ? build_rectangle(s) :
-                                    null;
-
-            return {
-                type: s.type,
-                shape: shape
-            };
+            return (
+                s.type === 'circle' ? build_circle(s) :
+                    s.type === 'line' ? build_line(s) :
+                        s.type === 'rectangle' ? build_rectangle(s) :
+                            null
+            );
 
         }
-    }
-
-    function build_arrow (a) {
-        const _arrow = arrow();
-        apply_attrs(_arrow, a['attribute']);
-        apply_styles(_arrow, a['style']);
-        return _arrow
-            .link(a['link'])
-            .target(a['target']);
     }
 
     function build_circle (c) {
         const _circle = circle();
         apply_attrs(_circle, c['attribute']);
         apply_styles(_circle, c['style']);
+        build_label(_circle, c['label']);
         return _circle;
     }
 
-    function build_label (l) {
-
-        const _label = label();
-        const aliases = l['alias'];
-
-        if (aliases) {
-            entries(aliases).forEach(function (alias) {
-                _label.alias(alias.key, '' + alias.value);
-            });
+    function build_label(s, l) {
+        if (l) {
+            if (l === 'no') {
+                s.label(null);
+            } else {
+                apply_attrs(s.label(), l['attribute']);
+                apply_styles(s.label(), l['style']);
+            }
         }
-
-        apply_attrs(_label, l['attribute']);
-        apply_styles(_label, l['style']);
-
-        return _label;
-
     }
 
     function build_line (l) {
         const _line = line();
         const curve = l['curve'];
-
         if (curve) _line.curve(build_curve(curve));
-
         apply_attrs(_line, l['attribute']);
         apply_styles(_line, l['style']);
+        build_label(_line, l['label']);
         return _line;
     }
 
@@ -2066,15 +2093,9 @@ function parse_json (json) {
         return entries;
     }
 
-    function find_atom (atoms, label$$1) {
+    function find_atom (atoms, label) {
         return atoms.find(function (a) {
-            return a.label() === label$$1;
-        });
-    }
-
-    function find_group (groups, label$$1) {
-        return groups.find(function (g) {
-            return g.label() === label$$1;
+            return a.label() === label;
         });
     }
 

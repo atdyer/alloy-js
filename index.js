@@ -5,6 +5,10 @@ const about = require('./routes/about');
 const user = require('./routes/user');
 const gist = require('./routes/gist');
 
+if (process.env.NODE_ENV === 'dev') {
+    console.log('IN DEV MODE: static contents of test/ directory available');
+    app.use(express.static('test'));
+}
 
 app.use(express.static('public'));
 app.get('/favicon.ico', (req, res) => res.status(204));

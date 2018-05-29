@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import {find_angle, find_intersection} from "../util/arrow-util";
+import {label} from "./label";
 
 export {rectangle};
 
@@ -7,19 +8,16 @@ function rectangle () {
 
     let selection;
 
-    let x = function (d) {
-        const width = +d3.select(this).attr('width') || 0;
-        return d.x - width / 2;
-    };
-
-    let y = function (d) {
-        const height = +d3.select(this).attr('height') || 0;
-        return d.y - height / 2;
-    };
+    let x = x_center,
+        y = y_center,
+        anchor = anchor_center;
 
     let draggable = true,
         drag = d3.drag()
             .on('drag.circle', dragged);
+
+    let labelled = true,
+        labels;
 
     let attributes = d3.map(),
         styles = d3.map();
@@ -34,6 +32,10 @@ function rectangle () {
         .set('stroke-width', 2);
 
     function _rectangle (g, data) {
+
+        data.forEach(function (d) {
+            d._shape = _rectangle;
+        });
 
         selection = g
             .selectAll('rect')
@@ -58,9 +60,18 @@ function rectangle () {
 
         selection.call(drag);
 
+        if (labelled) {
+            labels = label();
+            labels(g, selection);
+        }
+
         return selection;
 
     }
+
+    _rectangle.anchor = function (_) {
+        return arguments.length ? (anchor = _, _rectangle) : anchor;
+    };
 
     _rectangle.attr = function (name, value) {
         return arguments.length > 1
@@ -95,10 +106,8 @@ function rectangle () {
         const h = parseInt(target_rect.attr('height'));
         const x = parseInt(target_rect.attr('x'));
         const y = parseInt(target_rect.attr('y'));
-        const center = {
-            x: x + w / 2,
-            y: y + h / 2
-        };
+        const l = path.getTotalLength();
+        const center = path.getPointAtLength(l);
         let intersection = find_intersection(path, is_inside(x, y, w, h));
         if (intersection) {
             intersection = snap_to_edge(intersection, x, y, w, h);
@@ -113,11 +122,17 @@ function rectangle () {
 
     };
 
+    _rectangle.labelled = function (_) {
+        return arguments.length ? (labelled = !!_, _rectangle) : labelled;
+    };
+
     _rectangle.reposition = function () {
         if (selection)
             selection
                 .attr('x', x)
                 .attr('y', y);
+        if (labels)
+            labels.reposition();
         return _rectangle;
     };
 
@@ -136,6 +151,10 @@ function rectangle () {
         return 'rectangle';
     };
 
+
+    function anchor_center (d) {
+        return d;
+    }
 
     function dragged(d) {
         if (draggable) {
@@ -173,6 +192,16 @@ function rectangle () {
             y: yp
         };
 
+    }
+
+    function x_center (d) {
+        const width = +d3.select(this).attr('width') || 0;
+        return d.x - width / 2;
+    }
+
+    function y_center (d) {
+        const height = +d3.select(this).attr('height') || 0;
+        return d.y - height / 2;
     }
 
     return _rectangle;

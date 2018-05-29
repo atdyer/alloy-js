@@ -1,13 +1,10 @@
 import * as d3 from 'd3';
 
-export { arrow };
+export {arrow};
 
-function arrow () {
+function arrow (l) {
 
     let selection;
-
-    let link,
-        target;
 
     let draggable = false,
         drag = d3.drag();
@@ -26,7 +23,7 @@ function arrow () {
     function _arrow (g, data) {
 
         selection = g
-            .selectAll('path')
+            .selectAll('.arrow')
             .data(data);
 
         selection
@@ -36,6 +33,7 @@ function arrow () {
         selection = selection
             .enter()
             .append('path')
+            .attr('class', 'arrow')
             .merge(selection);
 
         attributes.each(function (value, key) {
@@ -71,23 +69,22 @@ function arrow () {
         return arguments.length ? (draggable = !!_, _arrow) : draggable;
     };
 
-    _arrow.link = function (_) {
-        return arguments.length ? (link = _, _arrow) : link;
-    };
-
     _arrow.reposition = function () {
 
         selection.attr('transform', function (datum) {
 
             // Get the visual element of the link (will be a path)
-            const link_element = link.element(datum);
+            const path = l.element(datum);
 
-            // Get the visual element the arrow will be pointing to (e.g. circle, rect)
-            const target_element = target.element(datum.target);
+            if (path && datum.target._shape) {
 
-            // Calculate intersection point and angle
-            if (link_element && target_element) {
-                const intersection = target.intersection(target_element, link_element);
+                // Get the visual element the arrow will be pointing to (e.g. circle, rect)
+                const target_element = datum.target._shape.element(datum.target);
+
+                // Calculate intersection point and angle
+                const intersection = datum.target._shape.intersection(target_element, path);
+
+                // Create tranlate/rotate string
                 return 'translate(' + intersection.x + ',' + intersection.y + ') rotate(' + intersection.angle + ')';
             }
 
@@ -104,10 +101,6 @@ function arrow () {
             : selection
                 ? selection.style(name)
                 : styles.get(name);
-    };
-
-    _arrow.target = function (_) {
-        return arguments.length ? (target = _, _arrow) : target;
     };
 
     _arrow.type = function () {

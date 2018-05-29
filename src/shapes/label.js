@@ -1,5 +1,4 @@
 import * as d3 from 'd3';
-import {constant} from "../util/graph-util";
 
 export {label};
 
@@ -7,20 +6,11 @@ function label () {
 
     let selection;
 
-    let accessor = label_accessor;
-    let aliases = d3.map();
+    let anchor_accessor,
+        text_accessor;
 
-    let x = function (d) {
-            return d.x;
-        },
-        y = function (d) {
-            return d.y;
-        };
-
-    let draggable = false,
-        drag = d3.drag();
-
-    let attributes = d3.map(),
+    let aliases = d3.map(),
+        attributes = d3.map(),
         styles = d3.map();
 
     attributes
@@ -38,7 +28,17 @@ function label () {
         .set('-ms-user-select', 'none')
         .set('user-select', 'none');
 
-    function _label (g, data) {
+
+    function _label (g, s) {
+
+        // Labels are attached to visual elements
+        let data = s.nodes();
+
+        // Attempt to set the accessors based on the
+        // type of visual element
+        if (data.length) {
+            guess_defaults(data[0]);
+        }
 
         selection = g
             .selectAll('text')
@@ -62,24 +62,14 @@ function label () {
         });
 
         selection.text(alias);
-        selection.call(drag);
 
         return selection;
 
     }
 
-    _label.accessor = function (_) {
-        return arguments.length ? (accessor = _, _label) : accessor;
-    };
 
-    _label.alias = function (_) {
-        if (arguments.length === 1) return aliases.get(arguments[0]);
-        if (arguments.length === 2) {
-            arguments[1] === null ?
-                aliases.remove(arguments[0]) :
-                aliases.set(arguments[0], arguments[1]);
-        }
-        return _label;
+    _label.anchor = function (_) {
+        return arguments.length ? (anchor_accessor = _, _label) : anchor_accessor;
     };
 
     _label.attr = function (name, value) {
@@ -93,27 +83,16 @@ function label () {
                 : attributes.get(name);
     };
 
-    _label.element = function (datum) {
-        if (selection)
-            return selection.nodes().find(function (element) {
-                return d3.select(element).datum() === datum;
-            });
-    };
-
-    _label.drag = function () {
-        return drag;
-    };
-
-    _label.draggable = function (_) {
-        return arguments.length ? (draggable = !!_, _label) : draggable;
-    };
-
     _label.reposition = function () {
-        if (selection)
-            selection
-                .attr('x', x)
-                .attr('y', y);
-        return _label;
+        if (selection) {
+            selection.each(function (d) {
+                let s = d3.select(d);
+                let p = anchor_accessor.call(d, s.datum());
+                d3.select(this)
+                    .attr('x', p.x)
+                    .attr('y', p.y);
+            });
+        }
     };
 
     _label.style = function (name, value) {
@@ -128,55 +107,64 @@ function label () {
     };
 
     _label.text = function (_) {
-        if (arguments.length) {
-            typeof _ === 'function'
-                ? accessor = _
-                : accessor = constant(_);
-            if (selection)
-                selection.text(alias);
-            return _label;
-        }
-        return accessor;
+        return arguments.length ? (text_accessor = _, _label) : text_accessor;
     };
 
-    _label.type = function (_) {
+    _label.type = function () {
         return 'label';
-    };
-
-    _label.x = function (_) {
-        if (arguments.length) {
-            if (typeof _ === 'function') {
-                x = _;
-            } else {
-                x = constant(_);
-            }
-            return _label;
-        }
-        return x;
-    };
-
-    _label.y = function (_) {
-        if (arguments.length) {
-            if (typeof _ === 'function') {
-                y = _;
-            } else {
-                y = constant(_);
-            }
-            return _label;
-        }
-        return y;
     };
 
 
     function alias (d) {
-        return aliases.get(accessor(d)) || accessor(d);
+        let s = d3.select(d);
+        let text = text_accessor.call(d, s.datum());
+        return aliases.get(text) || text;
     }
 
-    function label_accessor (d) {
-        return d.label();
+    function guess_defaults (node) {
+
+        if (node.tagName.toLowerCase() === 'path') {
+
+            anchor_accessor = anchor_accessor || path_anchor_accessor;
+            text_accessor = text_accessor || path_text_accessor;
+
+        } else {
+
+            anchor_accessor = anchor_accessor || shape_anchor_accessor;
+            text_accessor = text_accessor || shape_text_accessor;
+
+        }
+
     }
 
 
     return _label;
 
+}
+
+
+//
+// For anchor and text accessors:
+// - d: the datum associated with the shape being labeled (e.g. atom, tuple)
+// - this: the DOM element of the shape being labeled (e.g. path, rect)
+//
+
+function path_anchor_accessor (d) {
+    let l = this.getTotalLength();
+    return this.getPointAtLength(0.5 * l);
+}
+
+function path_text_accessor (d) {
+    // return d.id();
+    let label = d.field().label();
+    let intermediate = d.atoms().slice(1, -1);
+    return intermediate.length ? label + ' [' + intermediate.map(a => a.label()) + ']' : label;
+}
+
+function shape_anchor_accessor (d) {
+    return d;   // Note: each datum should have an x and y value already
+}
+
+function shape_text_accessor (d) {
+    return d.label();
 }

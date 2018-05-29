@@ -74,7 +74,7 @@ function apply_attributes (atoms, tuples) {
 
     tuples.forEach(function (tup) {
         for (let key in tup) {
-            if (tup.hasOwnProperty(key) && key !== 'arity' && key !== 'atoms' && key !== 'field') {
+            if (tup.hasOwnProperty(key) && key !== 'arity' && key !== 'atoms' && key !== 'field' && key !== 'id') {
                 delete tup[key];
             }
         }
