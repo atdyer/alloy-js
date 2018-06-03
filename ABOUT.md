@@ -38,17 +38,6 @@ groups:
     index: 1
     shape: rectangle
     data: atoms
-  labels:
-    index: 2
-    shape: label
-    data: atoms
-  arrows:
-    index: 3
-    shape:
-      type: arrow
-      link: edges
-      target: nodes
-    data: tuples
 ```
 
 ## User Pages
