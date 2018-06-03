@@ -17,7 +17,7 @@ function label () {
         .set('dy', '0.35em');
 
     styles
-        .set('fill', '#fff')
+        .set('fill', '#f8f8f2')
         .set('font-family', 'monospace')
         .set('font-size', 18)
         .set('font-weight', 'bold')

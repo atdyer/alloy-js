@@ -16,8 +16,8 @@ function arrow (l) {
         .set('d', 'M -10 -5 L 0 0 L -10 5 z');
 
     styles
-        .set('fill', '#555')
-        .set('stroke', '#555')
+        .set('fill', '##304148')
+        .set('stroke', '##304148')
         .set('stroke-width', 2);
 
     function _arrow (g, data) {

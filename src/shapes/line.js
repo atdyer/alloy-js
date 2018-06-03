@@ -16,7 +16,7 @@ function line () {
         drag = d3.drag();
 
     let labeller = label()
-        .style('fill', 'black')
+        .style('fill', '#121e25')
         .style('font-weight', 'lighter')
         .style('font-size', '10px');
 
@@ -25,7 +25,7 @@ function line () {
 
     styles
         .set('fill', 'none')
-        .set('stroke', '#555')
+        .set('stroke', '#304148')
         .set('stroke-width', 1);
 
     function _line (g, data) {

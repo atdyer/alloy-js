@@ -1018,7 +1018,7 @@ function label () {
         .set('dy', '0.35em');
 
     styles
-        .set('fill', '#fff')
+        .set('fill', '#f8f8f2')
         .set('font-family', 'monospace')
         .set('font-size', 18)
         .set('font-weight', 'bold')
@@ -1188,11 +1188,11 @@ function circle () {
         styles = d3$1.map();
 
     attributes
-        .set('r', 32);
+        .set('r', 42);
 
     styles
-        .set('fill', 'steelblue')
-        .set('stroke', 'white')
+        .set('fill', '#304148')
+        .set('stroke', '#f8f8f2')
         .set('stroke-width', 2);
 
     function _circle (g, data) {
@@ -1369,8 +1369,8 @@ function arrow (l) {
         .set('d', 'M -10 -5 L 0 0 L -10 5 z');
 
     styles
-        .set('fill', '#555')
-        .set('stroke', '#555')
+        .set('fill', '##304148')
+        .set('stroke', '##304148')
         .set('stroke-width', 2);
 
     function _arrow (g, data) {
@@ -1475,7 +1475,7 @@ function line () {
         drag = d3$1.drag();
 
     let labeller = label()
-        .style('fill', 'black')
+        .style('fill', '#121e25')
         .style('font-weight', 'lighter')
         .style('font-size', '10px');
 
@@ -1484,7 +1484,7 @@ function line () {
 
     styles
         .set('fill', 'none')
-        .set('stroke', '#555')
+        .set('stroke', '#304148')
         .set('stroke-width', 1);
 
     function _line (g, data) {
@@ -1620,8 +1620,8 @@ function rectangle () {
         .set('height', 60);
 
     styles
-        .set('fill', 'steelblue')
-        .set('stroke', 'white')
+        .set('fill', '#304148')
+        .set('stroke', '#f8f8f2')
         .set('stroke-width', 2);
 
     function _rectangle (g, data) {
@@ -1695,15 +1695,15 @@ function rectangle () {
     _rectangle.intersection = function (element, path) {
 
         const target_rect = d3$1.select(element);
-        const w = parseInt(target_rect.attr('width'));
-        const h = parseInt(target_rect.attr('height'));
-        const x = parseInt(target_rect.attr('x'));
-        const y = parseInt(target_rect.attr('y'));
+        const s = parseInt(target_rect.style('stroke-width')) || 0;
+        const w = parseInt(target_rect.attr('width')) + 2 * s;
+        const h = parseInt(target_rect.attr('height')) + 2 * s;
+        const x = parseInt(target_rect.attr('x')) - s;
+        const y = parseInt(target_rect.attr('y')) - s;
         const l = path.getTotalLength();
         const center = path.getPointAtLength(l);
         let intersection = find_intersection(path, is_inside(x, y, w, h));
         if (intersection) {
-            intersection = snap_to_edge(intersection, x, y, w, h);
             intersection.angle = find_angle(center, intersection);
             return intersection;
         }
@@ -1768,22 +1768,6 @@ function rectangle () {
         f.h = h;
 
         return f;
-
-    }
-
-    function snap_to_edge (pt, x, y, w, h) {
-
-        const tol = 1;
-        let xp = pt.x;
-        let yp = pt.y;
-        if (Math.abs(xp - x) < tol) xp = x;
-        if (Math.abs(xp - (x + w)) < tol) xp = x + w;
-        if (Math.abs(yp - y) < tol) yp = y;
-        if (Math.abs(yp - (y + h)) < tol) yp = y + h;
-        return {
-            x: xp,
-            y: yp
-        };
 
     }
 

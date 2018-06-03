@@ -1,0 +1,161 @@
+body {
+    font-family: "Helvetica Neue", Helvetica, sans-serif;
+    margin: 0;
+    tab-size: 2;
+    -webkit-text-size-adjust: none;
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+
+.column {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 620px;
+    height: 100%;
+    border-right: 1px solid #ccc;
+}
+
+:last-of-type {
+    border-right: none;
+}
+
+.message {
+    margin: 12px 8px;
+    padding: 4px;
+    font-size: 14px;
+    align-self: center;
+    text-align: center;
+    max-width: 320px;
+}
+
+.button-big {
+    margin: 8px;
+    padding: 8px 4px;
+    border: 1px solid darkgray;
+    min-width: 240px;
+    max-width: 360px;
+    align-self: center;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.button-big:hover {
+    background-color: lightgray;
+}
+
+.alloy-instance {
+    /*min-width: 960px;*/
+    /*height: 500px;*/
+    width: 100%;
+    height: 100%;
+    margin: auto;
+}
+
+.CodeMirror {
+    height: 100% !important;
+}
+
+h1 {
+    font-size: 46px;
+    font-weight: 500;
+    letter-spacing: -1px;
+    margin: 0.1em 0;
+}
+
+h2 {
+    margin-top: 2em;
+}
+
+h1, h2 {
+    text-rendering: optimizeLegibility;
+}
+
+blockquote {
+    max-width: 640px;
+}
+
+li {
+    max-width: 680px;
+}
+
+a:link {
+    color: #3182bd;
+    fill: #3182bd;
+}
+
+a:visited {
+    color: #756bb1;
+    fill: #756bb1;
+}
+
+a.self {
+    color: #000;
+}
+
+a.anchor {
+    color: #ccc;
+    left: -40px;
+    padding: 0 10px;
+    margin: 0 10px;
+    position: absolute;
+    font-weight: normal;
+}
+
+a:not(:hover) {
+    text-decoration: none;
+}
+
+pre,
+code,
+textarea {
+    font-family: "Menlo", monospace;
+    line-height: normal;
+}
+
+pre {
+    border-left: solid 2px #ccc;
+    padding-left: 18px;
+    margin: 2em 0 2em -20px;
+    max-width: 960px;
+    overflow-x: auto;
+}
+
+.html .string,
+.javascript .string,
+.javascript .regexp {
+    color: #756bb1;
+}
+
+.html .tag,
+.css .selector-class,
+.css .selector-tag,
+.javascript .keyword {
+    color: #3182bd;
+}
+
+aside,
+.comment {
+    color: #636363;
+}
+
+.html .meta,
+.css .number,
+.javascript .number {
+    color: #31a354;
+}
+
+.html .attr,
+.css .attribute,
+.javascript .class,
+.javascript .special {
+    color: #e6550d;
+}

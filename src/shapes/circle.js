@@ -22,11 +22,11 @@ function circle () {
         styles = d3.map();
 
     attributes
-        .set('r', 32);
+        .set('r', 42);
 
     styles
-        .set('fill', 'steelblue')
-        .set('stroke', 'white')
+        .set('fill', '#304148')
+        .set('stroke', '#f8f8f2')
         .set('stroke-width', 2);
 
     function _circle (g, data) {
