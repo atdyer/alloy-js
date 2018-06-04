@@ -88,12 +88,12 @@ function initialize_editor (text) {
 
 function render (instance, yaml) {
 
-    let data = alloy.graph_data(instance);
+    let data = alloy.data(instance);
     let style = jsyaml.safeLoad(yaml);
     let layout = alloy.parse_json(style);
     let renderer = layout(data);
 
-    svg.selectAll('*').remove();
+    // svg.selectAll('*').remove();
     renderer(svg);
 
 }

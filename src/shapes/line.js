@@ -30,9 +30,28 @@ function line () {
 
     function _line (g, data) {
 
+        // selection = g
+        //     .selectAll('.line')
+        //     .data(data);
+        //
+        // selection
+        //     .exit()
+        //     .remove();
+        //
+        // selection = selection
+        //     .enter()
+        //     .append('path')
+        //     .attr('class', 'line')
+        //     .attr('id', t => t.id())
+        //     .merge(selection);
+
         selection = g
-            .selectAll('.line')
-            .data(data);
+            .selectAll('g')
+            .data(data, function (d) { return d.id; });
+
+        selection
+            .selectAll('*')
+            .remove();
 
         selection
             .exit()
@@ -40,10 +59,11 @@ function line () {
 
         selection = selection
             .enter()
+            .append('g')
+            .attr('id', function (d) { return d.id; })
+            .merge(selection)
             .append('path')
-            .attr('class', 'line')
-            .attr('id', t => t.id())
-            .merge(selection);
+            .attr('class', 'line');
 
         attributes.each(function (value, key) {
             selection.attr(key, value);

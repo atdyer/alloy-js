@@ -694,8 +694,8 @@ function layout () {
 
         // Bind data to visual elements
         selection = svg
-            .selectAll('g')
-            .data(groups);
+            .selectAll('.group')
+            .data(groups, function (d) { console.log(d); return d.label(); });
 
         selection
             .exit()
@@ -705,6 +705,7 @@ function layout () {
             .enter()
             .append('g')
             .attr('id', function (d) { return d.label(); })
+            .attr('class', 'group')
             .merge(selection);
 
         selection.each(function (g) {
@@ -789,6 +790,7 @@ function layout () {
         const height = parseInt(svg.style('height'));
         atoms.forEach(function (a) {
             if (('x' in a) && ('y' in a)) {
+                console.log(a);
                 a.fx = a.x(width);
                 a.fy = a.y(height);
             }
@@ -1157,9 +1159,8 @@ function path_anchor_accessor (d) {
 }
 
 function path_text_accessor (d) {
-    // return d.id();
-    let label = d.field().label();
-    let intermediate = d.atoms().slice(1, -1);
+    let label = d.tuple.field().label();
+    let intermediate = d.atoms.slice(1, -1);
     return intermediate.length ? label + ' [' + intermediate.map(a => a.label()) + ']' : label;
 }
 
@@ -1168,7 +1169,7 @@ function shape_anchor_accessor (d) {
 }
 
 function shape_text_accessor (d) {
-    return d.label();
+    return d.id;
 }
 
 function circle () {
@@ -1202,9 +1203,29 @@ function circle () {
             d._shape = _circle;
         });
 
+        // selection = g
+        //     .selectAll('circle')
+        //     .data(data);
+        //
+        // selection
+        //     .exit()
+        //     .remove();
+        //
+        // selection = selection
+        //     .enter()
+        //     .append('circle')
+        //     .attr('cx', 0)
+        //     .attr('cy', 0)
+        //     .attr('r', 0)
+        //     .merge(selection);
+
         selection = g
-            .selectAll('circle')
-            .data(data);
+            .selectAll('g')
+            .data(data, function (d) { return d.id; });
+
+        selection
+            .selectAll('*')
+            .remove();
 
         selection
             .exit()
@@ -1212,11 +1233,13 @@ function circle () {
 
         selection = selection
             .enter()
+            .append('g')
+            .attr('id', function (d) { return d.id; })
+            .merge(selection)
             .append('circle')
-            .attr('cx', 0)
-            .attr('cy', 0)
-            .attr('r', 0)
-            .merge(selection);
+            .attr('cx', function (d) { return d.x || 0; })
+            .attr('cy', function (d) { return d.y || 0; })
+            .attr('r', 0);
 
         attributes.each(function (value, key) {
             selection.attr(key, value);
@@ -1490,9 +1513,28 @@ function line () {
 
     function _line (g, data) {
 
+        // selection = g
+        //     .selectAll('.line')
+        //     .data(data);
+        //
+        // selection
+        //     .exit()
+        //     .remove();
+        //
+        // selection = selection
+        //     .enter()
+        //     .append('path')
+        //     .attr('class', 'line')
+        //     .attr('id', t => t.id())
+        //     .merge(selection);
+
         selection = g
-            .selectAll('.line')
-            .data(data);
+            .selectAll('g')
+            .data(data, function (d) { return d.id; });
+
+        selection
+            .selectAll('*')
+            .remove();
 
         selection
             .exit()
@@ -1500,10 +1542,11 @@ function line () {
 
         selection = selection
             .enter()
+            .append('g')
+            .attr('id', function (d) { return d.id; })
+            .merge(selection)
             .append('path')
-            .attr('class', 'line')
-            .attr('id', t => t.id())
-            .merge(selection);
+            .attr('class', 'line');
 
         attributes.each(function (value, key) {
             selection.attr(key, value);
@@ -1631,9 +1674,25 @@ function rectangle () {
             d._shape = _rectangle;
         });
 
+        // selection = g
+        //     .selectAll('rect')
+        //     .data(data);
+        //
+        // selection
+        //     .exit()
+        //     .remove();
+        //
+        // selection = selection
+        //     .enter()
+        //     .append('rect')
+        //     .merge(selection);
         selection = g
-            .selectAll('rect')
-            .data(data);
+            .selectAll('g')
+            .data(data, function (d) { return d.id; });
+
+        selection
+            .selectAll('*')
+            .remove();
 
         selection
             .exit()
@@ -1641,8 +1700,10 @@ function rectangle () {
 
         selection = selection
             .enter()
-            .append('rect')
-            .merge(selection);
+            .append('g')
+            .attr('id', function (d) { return d.id; })
+            .merge(selection)
+            .append('rect');
 
         attributes.each(function (value, key) {
             selection.attr(key, value);
@@ -2096,25 +2157,28 @@ function data (inst) {
 
     let projected_atoms = atoms;
     let projected_tuples = tuples;
+    let needs_reproject = true;
 
     const graph_data = {};
     const projections = d3$1.map();
 
     graph_data.atoms = function () {
+        if (needs_reproject) reproject();
         return projected_atoms;
     };
 
     graph_data.remove_projection = function (sig) {
         projections.remove(sig);
-        reproject();
+        needs_reproject = true;
     };
 
     graph_data.set_projection = function (sig, atm) {
         projections.set(sig, atm);
-        reproject();
+        needs_reproject = true;
     };
 
     graph_data.tuples = function () {
+        if (needs_reproject) reproject();
         return projected_tuples;
     };
 
@@ -2127,12 +2191,74 @@ function data (inst) {
             let prj = project$1(sig, atom, projected_atoms, projected_tuples);
             projected_atoms = prj.atoms;
             projected_tuples = prj.tuples;
-            // apply_attributes(projected_atoms, projected_tuples);
         });
+        permute_joins(projected_atoms, projected_tuples);
+        apply_source_target(projected_tuples);
+        needs_reproject = false;
     }
 
 
     return graph_data;
+
+}
+
+function apply_source_target (tuples) {
+    tuples.forEach(function (tup) {
+        if (tup.atoms.length) {
+            tup.source = tup.atoms[0];
+            tup.target = tup.atoms[tup.atoms.length - 1];
+        }
+    });
+}
+
+function permute_joins (atoms, tuples) {
+
+    // TODO: Probably rethink this... how big will instances actually get?
+    // Oh boy... dear quadratic gods: please be gentle.
+
+    // Clear existing attributes
+    atoms.forEach(a => a.attributes = {});
+    tuples.forEach(t => t.attributes = {});
+
+    atoms.forEach(function (atom) {
+
+        tuples.forEach(function (tuple) {
+
+            if (tuple.atoms.length && tuple.atoms[0] === atom) {
+
+                if (!(tuple.field in atom.attributes))
+                    atom.attributes[tuple.field] = [];
+                atom.attributes[tuple.field].push(tuple.atoms.slice(1));
+
+            }
+
+        });
+
+    });
+
+    function index_match (acc, val, idx) {
+        return acc && val === t.atoms[idx];
+    }
+
+    tuples.forEach(function (tuple) {
+
+        tuples.forEach(function (t) {
+
+            if (tuple.atoms.length < t.atoms.length) {
+
+                if (tuple.atoms.reduce(index_match, true) === true) {
+
+                    if (!(t.field in tuple.attributes))
+                        tuple.attributes[t.field] = [];
+                    tuple.attributes[t.field].push(t.atoms.slice(tuple.atoms.length));
+
+                }
+
+            }
+
+        });
+
+    });
 
 }
 
@@ -2163,60 +2289,36 @@ function build_signature_list (atom) {
 
 }
 
-function project$1 (sig, atm, atoms, tuples) {
+function project$1(sig, atm, atoms, tuples) {
 
-    // List of atoms that are in the projected signature (or child signature)
-    const projected_atoms = atoms_of_signature(sig, atoms);
-    console.log('Atoms of signature ' + sig);
-    print_atoms$1(projected_atoms);
-    if (!projected_atoms.includes(atm)) {
-        return {
-            atoms: atoms,
-            tuples: tuples
-        };
-    }
+    // Get all atoms of signature sig
+    const sig_atoms = atoms_of_signature(sig, atoms);
 
-    // List of atoms that are not in the projected signature
-    const filtered_atoms = atoms.filter(function (atom) {
-        return !projected_atoms.includes(atom);
+    // Filter out atoms of projected signature to get
+    // list of atoms that will be visible
+    const projected_atoms = atoms.filter(function (atom) {
+        return !sig_atoms.includes(atom);
     });
-    console.log('Atoms not of signature ' + sig);
-    print_atoms$1(filtered_atoms);
 
-    console.log('All tuples');
-    tuples.forEach(t => print_atoms$1(t.atoms));
-
-    // Remove the atom we're projecting over from the projected atoms
-    projected_atoms.splice(projected_atoms.indexOf(atm), 1);
-    console.log('Atoms of signature ' + sig + ' with ' + atm.id + ' removed');
-    print_atoms$1(projected_atoms);
-
-    console.log('All tuples that do not include any atoms from previous list');
-    // Remove all relations that contain any of the remaining projected atoms
+    // Remove tuples that contain an atom in sig unless that atom is atm
     const projected_tuples = tuples.filter(function (tuple) {
-        return tuple.atoms.reduce(function (acc, atom) {
-            return acc && !projected_atoms.includes(atom);
-        }, true);
+        return tuple.atoms.find(function (atom) {
+            return atom !== atm && sig_atoms.includes(atom);
+        }) === undefined;
     });
-    projected_tuples.forEach(t => print_atoms$1(t.atoms));
 
-    // Remove the atom we're projecting over from the remaining relations
+    // Remove column sig from tuples
     projected_tuples.forEach(function (tuple) {
         tuple.atoms = tuple.atoms.filter(function (atom) {
             return atom !== atm;
         });
     });
 
-    console.log('-----');
     return {
-        atoms: filtered_atoms,
+        atoms: projected_atoms,
         tuples: projected_tuples
     };
 
-}
-
-function print_atoms$1 (l) {
-    console.log(l.map(a => a.id));
 }
 
 function tuple_to_object (atoms) {

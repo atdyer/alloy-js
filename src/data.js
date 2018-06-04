@@ -13,25 +13,28 @@ function data (inst) {
 
     let projected_atoms = atoms;
     let projected_tuples = tuples;
+    let needs_reproject = true;
 
     const graph_data = {};
     const projections = d3.map();
 
     graph_data.atoms = function () {
+        if (needs_reproject) reproject();
         return projected_atoms;
     };
 
     graph_data.remove_projection = function (sig) {
         projections.remove(sig);
-        reproject();
+        needs_reproject = true;
     };
 
     graph_data.set_projection = function (sig, atm) {
         projections.set(sig, atm);
-        reproject();
+        needs_reproject = true;
     };
 
     graph_data.tuples = function () {
+        if (needs_reproject) reproject();
         return projected_tuples;
     };
 
@@ -44,8 +47,10 @@ function data (inst) {
             let prj = project(sig, atom, projected_atoms, projected_tuples);
             projected_atoms = prj.atoms;
             projected_tuples = prj.tuples;
-            // apply_attributes(projected_atoms, projected_tuples);
         });
+        permute_joins(projected_atoms, projected_tuples);
+        apply_source_target(projected_tuples);
+        needs_reproject = false;
     }
 
 
@@ -53,33 +58,63 @@ function data (inst) {
 
 }
 
+function apply_source_target (tuples) {
+    tuples.forEach(function (tup) {
+        if (tup.atoms.length) {
+            tup.source = tup.atoms[0];
+            tup.target = tup.atoms[tup.atoms.length - 1];
+        }
+    });
+}
 
-function apply_attributes (atoms, tuples) {
+function permute_joins (atoms, tuples) {
+
+    // TODO: Probably rethink this... how big will instances actually get?
+    // Oh boy... dear quadratic gods: please be gentle.
 
     // Clear existing attributes
     atoms.forEach(a => a.attributes = {});
     tuples.forEach(t => t.attributes = {});
 
-    // For atoms, expose fields as attributes
     atoms.forEach(function (atom) {
 
         tuples.forEach(function (tuple) {
 
-            tuple = tuple.tuple;
+            if (tuple.atoms.length && tuple.atoms[0] === atom) {
 
-            if (tuple.arity() > 1 && tuple.atoms()[0] === atom) {
-
-                console.log(atom.id, tuple.atoms.map(a => a.id), tuple.arity);
-
-                atom.attributes[tuple.field] = tuple.atoms.length === 2
-                    ? tuple.atoms[1]
-                    : tuple.atoms.slice(1);
+                if (!(tuple.field in atom.attributes))
+                    atom.attributes[tuple.field] = [];
+                atom.attributes[tuple.field].push(tuple.atoms.slice(1));
 
             }
 
         });
 
     });
+
+    function index_match (acc, val, idx) {
+        return acc && val === t.atoms[idx];
+    }
+
+    tuples.forEach(function (tuple) {
+
+        tuples.forEach(function (t) {
+
+            if (tuple.atoms.length < t.atoms.length) {
+
+                if (tuple.atoms.reduce(index_match, true) === true) {
+
+                    if (!(t.field in tuple.attributes))
+                        tuple.attributes[t.field] = [];
+                    tuple.attributes[t.field].push(t.atoms.slice(tuple.atoms.length));
+
+                }
+
+            }
+
+        });
+
+    })
 
 }
 
@@ -110,60 +145,36 @@ function build_signature_list (atom) {
 
 }
 
-function project (sig, atm, atoms, tuples) {
+function project(sig, atm, atoms, tuples) {
 
-    // List of atoms that are in the projected signature (or child signature)
-    const projected_atoms = atoms_of_signature(sig, atoms);
-    console.log('Atoms of signature ' + sig);
-    print_atoms(projected_atoms);
-    if (!projected_atoms.includes(atm)) {
-        return {
-            atoms: atoms,
-            tuples: tuples
-        };
-    }
+    // Get all atoms of signature sig
+    const sig_atoms = atoms_of_signature(sig, atoms);
 
-    // List of atoms that are not in the projected signature
-    const filtered_atoms = atoms.filter(function (atom) {
-        return !projected_atoms.includes(atom);
+    // Filter out atoms of projected signature to get
+    // list of atoms that will be visible
+    const projected_atoms = atoms.filter(function (atom) {
+        return !sig_atoms.includes(atom);
     });
-    console.log('Atoms not of signature ' + sig);
-    print_atoms(filtered_atoms);
 
-    console.log('All tuples');
-    tuples.forEach(t => print_atoms(t.atoms));
-
-    // Remove the atom we're projecting over from the projected atoms
-    projected_atoms.splice(projected_atoms.indexOf(atm), 1);
-    console.log('Atoms of signature ' + sig + ' with ' + atm.id + ' removed');
-    print_atoms(projected_atoms);
-
-    console.log('All tuples that do not include any atoms from previous list');
-    // Remove all relations that contain any of the remaining projected atoms
+    // Remove tuples that contain an atom in sig unless that atom is atm
     const projected_tuples = tuples.filter(function (tuple) {
-        return tuple.atoms.reduce(function (acc, atom) {
-            return acc && !projected_atoms.includes(atom);
-        }, true);
+        return tuple.atoms.find(function (atom) {
+            return atom !== atm && sig_atoms.includes(atom);
+        }) === undefined;
     });
-    projected_tuples.forEach(t => print_atoms(t.atoms));
 
-    // Remove the atom we're projecting over from the remaining relations
+    // Remove column sig from tuples
     projected_tuples.forEach(function (tuple) {
         tuple.atoms = tuple.atoms.filter(function (atom) {
             return atom !== atm;
-        })
+        });
     });
 
-    console.log('-----');
     return {
-        atoms: filtered_atoms,
+        atoms: projected_atoms,
         tuples: projected_tuples
     };
 
-}
-
-function print_atoms (l) {
-    console.log(l.map(a => a.id));
 }
 
 function tuple_to_object (atoms) {

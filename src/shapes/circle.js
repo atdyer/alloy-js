@@ -35,9 +35,29 @@ function circle () {
             d._shape = _circle;
         });
 
+        // selection = g
+        //     .selectAll('circle')
+        //     .data(data);
+        //
+        // selection
+        //     .exit()
+        //     .remove();
+        //
+        // selection = selection
+        //     .enter()
+        //     .append('circle')
+        //     .attr('cx', 0)
+        //     .attr('cy', 0)
+        //     .attr('r', 0)
+        //     .merge(selection);
+
         selection = g
-            .selectAll('circle')
-            .data(data);
+            .selectAll('g')
+            .data(data, function (d) { return d.id; });
+
+        selection
+            .selectAll('*')
+            .remove();
 
         selection
             .exit()
@@ -45,11 +65,13 @@ function circle () {
 
         selection = selection
             .enter()
+            .append('g')
+            .attr('id', function (d) { return d.id; })
+            .merge(selection)
             .append('circle')
-            .attr('cx', 0)
-            .attr('cy', 0)
-            .attr('r', 0)
-            .merge(selection);
+            .attr('cx', function (d) { return d.x || 0; })
+            .attr('cy', function (d) { return d.y || 0; })
+            .attr('r', 0);
 
         attributes.each(function (value, key) {
             selection.attr(key, value);

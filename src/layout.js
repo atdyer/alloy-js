@@ -31,8 +31,8 @@ function layout () {
 
         // Bind data to visual elements
         selection = svg
-            .selectAll('g')
-            .data(groups);
+            .selectAll('.group')
+            .data(groups, function (d) { console.log(d); return d.label(); });
 
         selection
             .exit()
@@ -42,6 +42,7 @@ function layout () {
             .enter()
             .append('g')
             .attr('id', function (d) { return d.label(); })
+            .attr('class', 'group')
             .merge(selection);
 
         selection.each(function (g) {
@@ -126,6 +127,7 @@ function layout () {
         const height = parseInt(svg.style('height'));
         atoms.forEach(function (a) {
             if (('x' in a) && ('y' in a)) {
+                console.log(a);
                 a.fx = a.x(width);
                 a.fy = a.y(height);
             }

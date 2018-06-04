@@ -27,13 +27,18 @@ function test (doc) {
     console.log(data.atoms());
     console.log(data.tuples());
 
-    atoms.find(a => a.id === 'Eve$0').x = 123.345;
+    // atoms.find(a => a.id === 'Eve$0').x = 123.345;
 
-    console.log('Projecting: this/Man: Man$0');
-    data.set_projection('this/Man', 'Man$0');
+    // console.log('Projecting: this/Man: Man$0');
+    // data.set_projection('this/Man', 'Man$0');
+
+    console.log('Projecting: this/State: State$0');
+    data.set_projection('this/State', 'State$0');
 
     console.log(data.atoms());
     console.log(data.tuples());
+
+    console.log(instance.fields().map(f => f.label()));
 
     // data.remove_projection('this/Man');
     //

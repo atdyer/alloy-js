@@ -155,9 +155,8 @@ function path_anchor_accessor (d) {
 }
 
 function path_text_accessor (d) {
-    // return d.id();
-    let label = d.field().label();
-    let intermediate = d.atoms().slice(1, -1);
+    let label = d.tuple.field().label();
+    let intermediate = d.atoms.slice(1, -1);
     return intermediate.length ? label + ' [' + intermediate.map(a => a.label()) + ']' : label;
 }
 
@@ -166,5 +165,5 @@ function shape_anchor_accessor (d) {
 }
 
 function shape_text_accessor (d) {
-    return d.label();
+    return d.id;
 }

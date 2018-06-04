@@ -1,25 +1,27 @@
-body {
+html, body {
     font-family: "Helvetica Neue", Helvetica, sans-serif;
     margin: 0;
-    tab-size: 2;
-    -webkit-text-size-adjust: none;
     display: flex;
+    align-items: stretch;
     width: 100%;
     height: 100%;
 }
 
 
-.column {
+.editor {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-width: 620px;
-    height: 100%;
     border-right: 1px solid #ccc;
+    width: 35%;
+    min-width: 300px;
 }
 
-:last-of-type {
-    border-right: none;
+.display {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 65%;
 }
 
 .message {
@@ -53,11 +55,9 @@ body {
 }
 
 .alloy-instance {
-    /*min-width: 960px;*/
-    /*height: 500px;*/
     width: 100%;
     height: 100%;
-    margin: auto;
+    min-width: 500px;
 }
 
 .CodeMirror {

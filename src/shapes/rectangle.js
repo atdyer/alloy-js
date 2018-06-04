@@ -37,9 +37,25 @@ function rectangle () {
             d._shape = _rectangle;
         });
 
+        // selection = g
+        //     .selectAll('rect')
+        //     .data(data);
+        //
+        // selection
+        //     .exit()
+        //     .remove();
+        //
+        // selection = selection
+        //     .enter()
+        //     .append('rect')
+        //     .merge(selection);
         selection = g
-            .selectAll('rect')
-            .data(data);
+            .selectAll('g')
+            .data(data, function (d) { return d.id; });
+
+        selection
+            .selectAll('*')
+            .remove();
 
         selection
             .exit()
@@ -47,8 +63,10 @@ function rectangle () {
 
         selection = selection
             .enter()
-            .append('rect')
-            .merge(selection);
+            .append('g')
+            .attr('id', function (d) { return d.id; })
+            .merge(selection)
+            .append('rect');
 
         attributes.each(function (value, key) {
             selection.attr(key, value);
