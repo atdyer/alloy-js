@@ -316,6 +316,7 @@ function graph_data (inst) {
     const atoms = flatten_signatures(inst),
         tuples = flatten_fields(inst, atoms),
         projections = d3$1.map();
+
     let atoms_proj = atoms.slice(),
         tuples_proj = tuples.slice();
 
@@ -2085,10 +2086,156 @@ function parse_json (json) {
 
 }
 
+function data (inst) {
+
+    const atom_list = flatten_signatures(inst);
+    const tuple_list = flatten_fields(inst, atom_list);
+
+    const atoms = atom_list.map(atom_to_object);
+    const tuples = tuple_list.map(tuple_to_object(atoms));
+
+    let projected_atoms = atoms;
+    let projected_tuples = tuples;
+
+    const graph_data = {};
+    const projections = d3$1.map();
+
+    graph_data.atoms = function () {
+        return projected_atoms;
+    };
+
+    graph_data.remove_projection = function (sig) {
+        projections.remove(sig);
+        reproject();
+    };
+
+    graph_data.set_projection = function (sig, atm) {
+        projections.set(sig, atm);
+        reproject();
+    };
+
+    graph_data.tuples = function () {
+        return projected_tuples;
+    };
+
+
+    function reproject () {
+        projected_atoms = atoms;
+        projected_tuples = tuples;
+        projections.each(function (atm, sig) {
+            let atom = projected_atoms.find(a => a.id === atm);
+            let prj = project$1(sig, atom, projected_atoms, projected_tuples);
+            projected_atoms = prj.atoms;
+            projected_tuples = prj.tuples;
+            // apply_attributes(projected_atoms, projected_tuples);
+        });
+    }
+
+
+    return graph_data;
+
+}
+
+function atom_to_object (atom) {
+    return {
+        atom: atom,
+        id: atom.label(),
+        signature: build_signature_list(atom)
+    }
+}
+
+function atoms_of_signature (sig, atoms) {
+    return atoms.filter(function (atom) {
+        return atom.signature.includes(sig);
+    });
+}
+
+function build_signature_list (atom) {
+    let parent = atom.parent(),
+        sig = [];
+
+    while(parent) {
+        sig.push(parent.label());
+        parent = parent.parent();
+    }
+
+    return sig;
+
+}
+
+function project$1 (sig, atm, atoms, tuples) {
+
+    // List of atoms that are in the projected signature (or child signature)
+    const projected_atoms = atoms_of_signature(sig, atoms);
+    console.log('Atoms of signature ' + sig);
+    print_atoms$1(projected_atoms);
+    if (!projected_atoms.includes(atm)) {
+        return {
+            atoms: atoms,
+            tuples: tuples
+        };
+    }
+
+    // List of atoms that are not in the projected signature
+    const filtered_atoms = atoms.filter(function (atom) {
+        return !projected_atoms.includes(atom);
+    });
+    console.log('Atoms not of signature ' + sig);
+    print_atoms$1(filtered_atoms);
+
+    console.log('All tuples');
+    tuples.forEach(t => print_atoms$1(t.atoms));
+
+    // Remove the atom we're projecting over from the projected atoms
+    projected_atoms.splice(projected_atoms.indexOf(atm), 1);
+    console.log('Atoms of signature ' + sig + ' with ' + atm.id + ' removed');
+    print_atoms$1(projected_atoms);
+
+    console.log('All tuples that do not include any atoms from previous list');
+    // Remove all relations that contain any of the remaining projected atoms
+    const projected_tuples = tuples.filter(function (tuple) {
+        return tuple.atoms.reduce(function (acc, atom) {
+            return acc && !projected_atoms.includes(atom);
+        }, true);
+    });
+    projected_tuples.forEach(t => print_atoms$1(t.atoms));
+
+    // Remove the atom we're projecting over from the remaining relations
+    projected_tuples.forEach(function (tuple) {
+        tuple.atoms = tuple.atoms.filter(function (atom) {
+            return atom !== atm;
+        });
+    });
+
+    console.log('-----');
+    return {
+        atoms: filtered_atoms,
+        tuples: projected_tuples
+    };
+
+}
+
+function print_atoms$1 (l) {
+    console.log(l.map(a => a.id));
+}
+
+function tuple_to_object (atoms) {
+    return function (tuple) {
+        return {
+            arity: tuple.arity(),
+            atoms: tuple.atoms().map(atom => atoms.find(a => a.atom === atom)),
+            field: tuple.field().label(),
+            id: tuple.id(),
+            tuple: tuple
+        }
+    }
+}
+
 exports.graph_data = graph_data;
 exports.instance = instance;
 exports.layout = layout;
 exports.parse_json = parse_json;
+exports.data = data;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 

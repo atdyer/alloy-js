@@ -15,6 +15,7 @@ function graph_data (inst) {
     const atoms = flatten_signatures(inst),
         tuples = flatten_fields(inst, atoms),
         projections = d3.map();
+
     let atoms_proj = atoms.slice(),
         tuples_proj = tuples.slice();
 
