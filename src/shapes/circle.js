@@ -29,7 +29,46 @@ function circle () {
         .set('stroke', '#f8f8f2')
         .set('stroke-width', 2);
 
-    function _circle (g, data) {
+    function _circle (g) {
+
+        g.selectAll('*').remove();
+
+        selection = g
+            .append('circle')
+            .attr('cx', function (d) { return d.x || 0; })
+            .attr('cy', function (d) { return d.y || 0; })
+            .attr('r', 0);
+
+        selection.each(function (d) {
+            d._shape = _circle;
+        });
+
+        attributes.each(function (value, key) {
+            selection.attr(key, value);
+        });
+
+        styles.each(function (value, key) {
+            selection.style(key, value);
+        });
+
+        selection.call(drag);
+
+        if (labeller) {
+            labeller(g, selection);
+        }
+
+        return selection;
+
+        // selection = group_selection
+        //     .selectAll('circle')
+        //     .data(function (d) { return [d]; })
+        //     .enter()
+        //     .append('circle');
+        //
+        // console.log(selection.size());
+    }
+
+    function __circle (g, data) {
 
         data.forEach(function (d) {
             d._shape = _circle;

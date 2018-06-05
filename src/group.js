@@ -8,6 +8,7 @@ function group () {
         simulation;
 
     let index,
+        id,
         label;
 
     function _group (g) {
@@ -33,6 +34,10 @@ function group () {
 
     _group.draggable = function (_) {
         return shape.draggable(_);
+    };
+
+    _group.id = function (_) {
+        return arguments.length ? (id = _, _group) : id;
     };
 
     _group.index = function (_) {
