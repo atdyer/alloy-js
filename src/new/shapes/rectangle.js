@@ -9,18 +9,19 @@ function rectangle () {
     let attributes = d3.map(),
         styles = d3.map();
 
+    attributes
+        .set('width', 250)
+        .set('height', 150);
+
     function _rectangle (selection) {
 
         selection
-            .selectAll('*')
+            .selectAll('.shape')
             .remove();
 
         rectangles = selection
             .append('rect')
-            .attr('x', function (d) { return d.x || 0; })
-            .attr('y', function (d) { return d.y || 0; })
-            .attr('width', function (d) { return d.width || 0; })
-            .attr('height', function (d) { return d.height || 0;});
+            .attr('class', 'shape');
 
         rectangles.each(function (d) {
             d._shape = _rectangle;
@@ -33,6 +34,8 @@ function rectangle () {
         styles.each(function (value, key) {
             rectangles.style(key, value);
         });
+
+        _rectangle.reposition();
 
         return rectangles;
 
@@ -49,6 +52,17 @@ function rectangle () {
                 : attributes.get(name);
     };
 
+    _rectangle.reposition = function () {
+        if (rectangles)
+            rectangles
+                .attr('x', x)
+                .attr('y', y)
+                .attr('width', width)
+                .attr('height', height)
+                .each(anchor);
+        return _rectangle;
+    };
+
     _rectangle.style = function (name, value) {
         return arguments.length > 1
             ? (rectangles
@@ -62,4 +76,31 @@ function rectangle () {
 
     return _rectangle;
 
+}
+
+function x (d) {
+    const _x = d.x || 0;
+    const _w = width.call(this);
+    return _x - _w / 2;
+}
+
+function y (d) {
+    const _y = d.y || 0;
+    const _h = height.call(this);
+    return _y - _h / 2;
+}
+
+function width () {
+    return +d3.select(this).attr('width') || 0;
+}
+
+function height () {
+    return +d3.select(this).attr('height') || 0;
+}
+
+function anchor (d) {
+    d.anchor = {
+        x: d.x,
+        y: d.y
+    }
 }

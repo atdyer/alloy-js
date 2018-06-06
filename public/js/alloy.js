@@ -508,6 +508,99 @@ function tuple_to_object (atoms) {
     }
 }
 
+function label () {
+
+    let labels;
+
+    let aliases = d3$1.map(),
+        attributes = d3$1.map(),
+        styles = d3$1.map();
+
+    attributes
+        .set('text-anchor', 'middle')
+        .set('dominant-baseline', 'middle');
+
+    styles
+        .set('pointer-events', 'none')
+        .set('-webkit-user-select', 'none')
+        .set('-moz-user-select', 'none')
+        .set('-ms-user-select', 'none')
+        .set('user-select', 'none');
+
+    function _label (selection) {
+
+        selection
+            .selectAll('.label')
+            .remove();
+
+        labels = selection
+            .append('text')
+            .attr('class', 'label')
+            .attr('x', x)
+            .attr('y', y)
+            .text(alias);
+
+        attributes.each(function (value, key) {
+            labels.attr(key, value);
+        });
+
+        styles.each(function (value, key) {
+            labels.style(key, value);
+        });
+
+        return labels;
+
+    }
+
+    _label.attr = function (name, value) {
+        return arguments.length > 1
+            ? (labels
+                ? labels.attr(name, value)
+                : attributes.set(name, value),
+                _label)
+            : labels
+                ? labels.attr(name)
+                : attributes.get(name);
+    };
+
+    _label.reposition = function () {
+        if (labels)
+            labels
+                .attr('x', x)
+                .attr('y', y);
+        return _label;
+    };
+
+    _label.style = function (name, value) {
+        return arguments.length > 1
+            ? (labels
+                ? labels.style(name, value)
+                : styles.set(name, value),
+                _label)
+            : labels
+                ? labels.style(name)
+                : styles.get(name);
+    };
+
+
+    function alias (d) {
+        return aliases.get(d.id) || d.id;
+    }
+
+
+    return _label;
+
+}
+
+
+function x (d) {
+    return d.anchor ? d.anchor.x : d.x;
+}
+
+function y (d) {
+    return d.anchor ? d.anchor.y : d.y;
+}
+
 function group () {
 
     let data,
@@ -515,6 +608,11 @@ function group () {
 
     let groups,
         id;
+
+    let labeller = label()
+        .style('fill', 'red');
+    let dragger = d3.drag()
+        .on('drag.shape', dragged);
 
     function _group (selection) {
 
@@ -531,7 +629,9 @@ function group () {
             .attr('class', 'alloy-shape')
             .attr('id', function (d) { return d.id; })
             .merge(groups)
-            .call(shape);
+            .call(shape)
+            .call(labeller)
+            .call(dragger);
 
         return groups;
 
@@ -545,11 +645,23 @@ function group () {
         return arguments.length ? (data = _, _group) : data;
     };
 
+    _group.reposition = function () {
+        if (shape) shape.reposition();
+        labeller.reposition();
+    };
+
     _group.shape = function (_) {
         return arguments.length ? (shape = _, _group) : shape;
     };
 
     return _group;
+
+
+    function dragged (d) {
+        d.x = (d.x || 0) + d3.event.dx;
+        d.y = (d.y || 0) + d3.event.dy;
+        _group.reposition();
+    }
 
 }
 
@@ -560,17 +672,21 @@ function circle () {
     let attributes = d3$1.map(),
         styles = d3$1.map();
 
+    attributes
+        .set('r', 80);
+
     function _circle (selection) {
 
         selection
-            .selectAll('*')
+            .selectAll('.shape')
             .remove();
 
         circles = selection
             .append('circle')
-            .attr('cx', function (d) { return d.x || 0; })
-            .attr('cy', function (d) { return d.y || 0; })
-            .attr('r', function (d) { return d.r || 0; });
+            .attr('class', 'shape')
+            .attr('cx', cx)
+            .attr('cy', cy)
+            .attr('r', r);
 
         circles.each(function (d) {
             d._shape = _circle;
@@ -599,6 +715,15 @@ function circle () {
                 : attributes.get(name);
     };
 
+    _circle.reposition = function () {
+        if (circles)
+            circles
+                .attr('cx', cx)
+                .attr('cy', cy)
+                .attr('r', r);
+        return _circle;
+    };
+
     _circle.style = function (name, value) {
         return arguments.length > 1
             ? (circles
@@ -614,6 +739,19 @@ function circle () {
 
 }
 
+
+function cx (d) {
+    return d.x || 0;
+}
+
+function cy (d) {
+    return d.y || 0;
+}
+
+function r () {
+    return d3$1.select(this).attr('r') || 0;
+}
+
 function rectangle () {
 
     let rectangles;
@@ -621,18 +759,19 @@ function rectangle () {
     let attributes = d3$1.map(),
         styles = d3$1.map();
 
+    attributes
+        .set('width', 250)
+        .set('height', 150);
+
     function _rectangle (selection) {
 
         selection
-            .selectAll('*')
+            .selectAll('.shape')
             .remove();
 
         rectangles = selection
             .append('rect')
-            .attr('x', function (d) { return d.x || 0; })
-            .attr('y', function (d) { return d.y || 0; })
-            .attr('width', function (d) { return d.width || 0; })
-            .attr('height', function (d) { return d.height || 0;});
+            .attr('class', 'shape');
 
         rectangles.each(function (d) {
             d._shape = _rectangle;
@@ -645,6 +784,8 @@ function rectangle () {
         styles.each(function (value, key) {
             rectangles.style(key, value);
         });
+
+        _rectangle.reposition();
 
         return rectangles;
 
@@ -661,6 +802,17 @@ function rectangle () {
                 : attributes.get(name);
     };
 
+    _rectangle.reposition = function () {
+        if (rectangles)
+            rectangles
+                .attr('x', x$1)
+                .attr('y', y$1)
+                .attr('width', width)
+                .attr('height', height)
+                .each(anchor);
+        return _rectangle;
+    };
+
     _rectangle.style = function (name, value) {
         return arguments.length > 1
             ? (rectangles
@@ -674,6 +826,33 @@ function rectangle () {
 
     return _rectangle;
 
+}
+
+function x$1 (d) {
+    const _x = d.x || 0;
+    const _w = width.call(this);
+    return _x - _w / 2;
+}
+
+function y$1 (d) {
+    const _y = d.y || 0;
+    const _h = height.call(this);
+    return _y - _h / 2;
+}
+
+function width () {
+    return +d3$1.select(this).attr('width') || 0;
+}
+
+function height () {
+    return +d3$1.select(this).attr('height') || 0;
+}
+
+function anchor (d) {
+    d.anchor = {
+        x: d.x,
+        y: d.y
+    };
 }
 
 // export * from './graph-data';

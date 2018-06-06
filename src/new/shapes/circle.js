@@ -9,17 +9,21 @@ function circle () {
     let attributes = d3.map(),
         styles = d3.map();
 
+    attributes
+        .set('r', 80);
+
     function _circle (selection) {
 
         selection
-            .selectAll('*')
+            .selectAll('.shape')
             .remove();
 
         circles = selection
             .append('circle')
-            .attr('cx', function (d) { return d.x || 0; })
-            .attr('cy', function (d) { return d.y || 0; })
-            .attr('r', function (d) { return d.r || 0; });
+            .attr('class', 'shape')
+            .attr('cx', cx)
+            .attr('cy', cy)
+            .attr('r', r);
 
         circles.each(function (d) {
             d._shape = _circle;
@@ -48,6 +52,15 @@ function circle () {
                 : attributes.get(name);
     };
 
+    _circle.reposition = function () {
+        if (circles)
+            circles
+                .attr('cx', cx)
+                .attr('cy', cy)
+                .attr('r', r);
+        return _circle;
+    };
+
     _circle.style = function (name, value) {
         return arguments.length > 1
             ? (circles
@@ -61,4 +74,17 @@ function circle () {
 
     return _circle;
 
+}
+
+
+function cx (d) {
+    return d.x || 0;
+}
+
+function cy (d) {
+    return d.y || 0;
+}
+
+function r () {
+    return d3.select(this).attr('r') || 0;
 }

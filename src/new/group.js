@@ -1,3 +1,5 @@
+import {label} from './label'
+
 export {group};
 
 function group () {
@@ -7,6 +9,11 @@ function group () {
 
     let groups,
         id;
+
+    let labeller = label()
+        .style('fill', 'red');
+    let dragger = d3.drag()
+        .on('drag.shape', dragged);
 
     function _group (selection) {
 
@@ -23,7 +30,9 @@ function group () {
             .attr('class', 'alloy-shape')
             .attr('id', function (d) { return d.id; })
             .merge(groups)
-            .call(shape);
+            .call(shape)
+            .call(labeller)
+            .call(dragger);
 
         return groups;
 
@@ -37,10 +46,22 @@ function group () {
         return arguments.length ? (data = _, _group) : data;
     };
 
+    _group.reposition = function () {
+        if (shape) shape.reposition();
+        labeller.reposition();
+    };
+
     _group.shape = function (_) {
         return arguments.length ? (shape = _, _group) : shape;
     };
 
     return _group;
+
+
+    function dragged (d) {
+        d.x = (d.x || 0) + d3.event.dx;
+        d.y = (d.y || 0) + d3.event.dy;
+        _group.reposition();
+    }
 
 }

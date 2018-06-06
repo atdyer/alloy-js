@@ -40,14 +40,14 @@ function test (doc) {
     render(t, g);
 
     // The user moves some things around
-    atoms.data()[0].y = 100;
-
-    atoms = alloy.group()
-        .id('atoms')
-        .data(data.atoms())
-        .shape(default_rectangle());
-
-    render(t, [atoms]);
+    // atoms.data()[0].y = 100;
+    //
+    // atoms = alloy.group()
+    //     .id('atoms')
+    //     .data(data.atoms())
+    //     .shape(default_rectangle());
+    //
+    // render(t, [atoms]);
 
 
 
