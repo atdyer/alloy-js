@@ -6,3 +6,5 @@ export * from './data';
 export * from './new/group';
 export * from './new/shapes/circle';
 export * from './new/shapes/rectangle';
+export * from './new/shapes/line';
+export * from './new/display';

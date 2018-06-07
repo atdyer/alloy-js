@@ -23,6 +23,11 @@ function data (inst) {
         return projected_atoms;
     };
 
+    graph_data.clear_projections = function () {
+        projections.clear();
+        needs_reproject = true;
+    };
+
     graph_data.remove_projection = function (sig) {
         projections.remove(sig);
         needs_reproject = true;
@@ -92,13 +97,13 @@ function permute_joins (atoms, tuples) {
 
     });
 
-    function index_match (acc, val, idx) {
-        return acc && val === t.atoms[idx];
-    }
-
     tuples.forEach(function (tuple) {
 
         tuples.forEach(function (t) {
+
+            function index_match (acc, val, idx) {
+                return acc && val === t.atoms[idx];
+            }
 
             if (tuple.atoms.length < t.atoms.length) {
 

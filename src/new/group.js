@@ -8,12 +8,14 @@ function group () {
         shape;
 
     let groups,
-        id;
+        id,
+        index;
 
-    let labeller = label()
-        .style('fill', 'red');
-    let dragger = d3.drag()
-        .on('drag.shape', dragged);
+    let _label,
+        _drag = d3.drag()
+            .on('drag.shape', dragged);
+
+    _group.on = _drag.on;
 
     function _group (selection) {
 
@@ -31,24 +33,38 @@ function group () {
             .attr('id', function (d) { return d.id; })
             .merge(groups)
             .call(shape)
-            .call(labeller)
-            .call(dragger);
+            .call(_drag);
+
+        if (_label) groups.call(_label);
 
         return groups;
 
     }
 
-    _group.id = function (_) {
-        return arguments.length ? (id = _, _group) : id;
-    };
-
     _group.data = function (_) {
         return arguments.length ? (data = _, _group) : data;
     };
 
+    _group.id = function (_) {
+        return arguments.length ? (id = _, _group) : id;
+    };
+
+    _group.index = function (_) {
+        return arguments.length ? (index = +_, _group) : index;
+    };
+
+    _group.label = function (_) {
+        return arguments.length ? (_label = _, _group) : _label;
+    };
+
+    _group.on = function () {
+        _drag.on.apply(null, arguments);
+        return _group;
+    };
+
     _group.reposition = function () {
         if (shape) shape.reposition();
-        labeller.reposition();
+        _label.reposition();
     };
 
     _group.shape = function (_) {
@@ -61,7 +77,6 @@ function group () {
     function dragged (d) {
         d.x = (d.x || 0) + d3.event.dx;
         d.y = (d.y || 0) + d3.event.dy;
-        _group.reposition();
     }
 
 }

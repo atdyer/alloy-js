@@ -10,17 +10,6 @@ function label () {
         attributes = d3.map(),
         styles = d3.map();
 
-    attributes
-        .set('text-anchor', 'middle')
-        .set('dominant-baseline', 'middle');
-
-    styles
-        .set('pointer-events', 'none')
-        .set('-webkit-user-select', 'none')
-        .set('-moz-user-select', 'none')
-        .set('-ms-user-select', 'none')
-        .set('user-select', 'none');
-
     function _label (selection) {
 
         selection

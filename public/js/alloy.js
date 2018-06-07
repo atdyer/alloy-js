@@ -342,6 +342,11 @@ function data (inst) {
         return projected_atoms;
     };
 
+    graph_data.clear_projections = function () {
+        projections.clear();
+        needs_reproject = true;
+    };
+
     graph_data.remove_projection = function (sig) {
         projections.remove(sig);
         needs_reproject = true;
@@ -411,13 +416,13 @@ function permute_joins (atoms, tuples) {
 
     });
 
-    function index_match (acc, val, idx) {
-        return acc && val === t.atoms[idx];
-    }
-
     tuples.forEach(function (tuple) {
 
         tuples.forEach(function (t) {
+
+            function index_match (acc, val, idx) {
+                return acc && val === t.atoms[idx];
+            }
 
             if (tuple.atoms.length < t.atoms.length) {
 
@@ -516,17 +521,6 @@ function label () {
         attributes = d3$1.map(),
         styles = d3$1.map();
 
-    attributes
-        .set('text-anchor', 'middle')
-        .set('dominant-baseline', 'middle');
-
-    styles
-        .set('pointer-events', 'none')
-        .set('-webkit-user-select', 'none')
-        .set('-moz-user-select', 'none')
-        .set('-ms-user-select', 'none')
-        .set('user-select', 'none');
-
     function _label (selection) {
 
         selection
@@ -607,12 +601,14 @@ function group () {
         shape;
 
     let groups,
-        id;
+        id,
+        index;
 
-    let labeller = label()
-        .style('fill', 'red');
-    let dragger = d3.drag()
-        .on('drag.shape', dragged);
+    let _label,
+        _drag = d3.drag()
+            .on('drag.shape', dragged);
+
+    _group.on = _drag.on;
 
     function _group (selection) {
 
@@ -630,24 +626,38 @@ function group () {
             .attr('id', function (d) { return d.id; })
             .merge(groups)
             .call(shape)
-            .call(labeller)
-            .call(dragger);
+            .call(_drag);
+
+        if (_label) groups.call(_label);
 
         return groups;
 
     }
 
-    _group.id = function (_) {
-        return arguments.length ? (id = _, _group) : id;
-    };
-
     _group.data = function (_) {
         return arguments.length ? (data = _, _group) : data;
     };
 
+    _group.id = function (_) {
+        return arguments.length ? (id = _, _group) : id;
+    };
+
+    _group.index = function (_) {
+        return arguments.length ? (index = +_, _group) : index;
+    };
+
+    _group.label = function (_) {
+        return arguments.length ? (_label = _, _group) : _label;
+    };
+
+    _group.on = function () {
+        _drag.on.apply(null, arguments);
+        return _group;
+    };
+
     _group.reposition = function () {
         if (shape) shape.reposition();
-        labeller.reposition();
+        _label.reposition();
     };
 
     _group.shape = function (_) {
@@ -660,7 +670,6 @@ function group () {
     function dragged (d) {
         d.x = (d.x || 0) + d3.event.dx;
         d.y = (d.y || 0) + d3.event.dy;
-        _group.reposition();
     }
 
 }
@@ -855,6 +864,370 @@ function anchor (d) {
     };
 }
 
+function arc_straight (d) {
+    const line = d3$1.line();
+    return line([
+        [d.source.x || 0, d.source.y || 0],
+        [d.target.x || 0, d.target.y || 0]
+    ]);
+}
+
+function line () {
+
+    let lines;
+
+    let curve_function = arc_straight;
+
+    let attributes = d3$1.map(),
+        styles = d3$1.map();
+
+    styles
+        .set('fill', 'none');
+
+    function _line (selection) {
+
+        selection
+            .selectAll('.shape')
+            .remove();
+
+        lines = selection
+            .append('path')
+            .attr('class', 'shape');
+
+        lines.each(function (d) {
+            d._shape = _line;
+        });
+
+        attributes.each(function (value, key) {
+            lines.attr(key, value);
+        });
+
+        styles.each(function (value, key) {
+            lines.style(key, value);
+        });
+
+        _line.reposition();
+
+        return lines;
+
+    }
+
+    _line.attr = function (name, value) {
+        return arguments.length > 1
+            ? (lines
+                ? lines.attr(name, value)
+                : attributes.set(name, value),
+                _line)
+            : lines
+                ? lines.attr(name)
+                : attributes.get(name);
+    };
+
+    _line.reposition = function () {
+        if (lines)
+            lines
+                .attr('d', curve_function)
+                .each(anchor$1);
+        return _line;
+    };
+
+    _line.style = function (name, value) {
+        return arguments.length > 1
+            ? (lines
+                ? lines.style(name, value)
+                : styles.set(name, value),
+                _line)
+            : lines
+                ? lines.style(name)
+                : styles.get(name);
+    };
+
+    return _line;
+
+}
+
+
+function anchor$1 (d) {
+    let l = this.getTotalLength();
+    d.anchor = this.getPointAtLength(0.5 * l);
+}
+
+function display (data) {
+
+    let groups = [];
+    let next_index = -1;
+
+    function _display (svg) {
+
+        layout(svg);
+
+        let selection = svg
+            .selectAll('.alloy-group')
+            .data(groups, function (d) { return d.id(); });
+
+        selection
+            .exit()
+            .remove();
+
+        selection = selection
+            .enter()
+            .append('g')
+            .attr('class', 'alloy-group')
+            .attr('id', function (d) { return d.id(); })
+            .merge(selection);
+
+        selection.each(function (group$$1) {
+            d3$1.select(this).call(group$$1);
+        });
+
+        return selection;
+
+    }
+
+    _display.style = function (json) {
+
+        groups = [];
+
+        data.clear_projections();
+
+        if (json && json['projections']) {
+
+            d3$1.entries(json['projections']).forEach(function (p) {
+
+                const sig = p.key;
+                const atm = p.value;
+
+                data.set_projection(sig, atm);
+
+            });
+
+        }
+
+        if (json && json['groups']) {
+
+            d3$1.entries(json['groups']).forEach(function (g) {
+
+                const grp = g.value;
+                const idx = grp.index || (next_index += 1, next_index);
+                const gid = g.key || 'alloy-group-' + idx;
+
+                const shp = build_shape(grp.shape);
+                const dat = build_data(grp.data, data);
+                const lbl = build_label(grp.label, dat);
+
+                groups.push(
+                    group()
+                        .id(gid)
+                        .index(idx)
+                        .data(dat)
+                        .shape(shp)
+                        .label(lbl)
+                        .on('drag.group', reposition)
+                );
+
+
+            });
+
+            groups.sort(function (a, b) {
+
+                return a.index() - b.index();
+
+            });
+
+        } else {
+
+            _display.style({
+                groups: {
+                    atoms: {
+                        shape: 'circle',
+                        data: 'atoms',
+                        index: 1
+                    },
+                    tuples: {
+                        shape: 'line',
+                        data: 'tuples',
+                        index: 0
+                    }
+                }
+            });
+
+        }
+
+        return _display;
+
+    };
+
+
+    function reposition () {
+        groups.forEach(function (g) {
+            g.reposition();
+        });
+    }
+
+    function layout (svg) {
+
+        let atoms = data.atoms();
+        let tuples = data.tuples();
+
+        let cx = parseInt(svg.style('width')) / 2;
+        let cy = parseInt(svg.style('height')) / 2;
+
+        atoms.forEach(function (a) {
+            if ('x' in a) a.fx = a.x;
+            if ('y' in a) a.fy = a.y;
+        });
+
+        let simulation = d3$1.forceSimulation(atoms)
+            .force('center', d3$1.forceCenter(cx, cy))
+            .force('collide', d3$1.forceCollide(65))
+            .force('charge', d3$1.forceManyBody().strength(-80))
+            .force('links', d3$1.forceLink(tuples).distance(150))
+            .force('x', d3$1.forceX(cx))
+            .force('y', d3$1.forceY(cy))
+            .stop();
+
+        let i = 0;
+        const n = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()));
+        for (; i < n; ++i) {
+            simulation.tick();
+        }
+
+        atoms.forEach(function (a) {
+            if ('fx' in a) delete a.fx;
+            if ('fy' in a) delete a.fy;
+        });
+
+    }
+
+
+    return _display.style();
+
+}
+
+function apply_attrs (shape, attributes) {
+    d3$1.entries(attributes).forEach(function (attr) {
+        shape.attr(attr.key, attr.value);
+    });
+}
+
+function apply_styles (shape, styles) {
+    d3$1.entries(styles).forEach(function (style) {
+        shape.style(style.key, style.value);
+    });
+}
+
+function build_circle (s) {
+    const c = default_circle();
+    apply_attrs(c, s['attribute']);
+    apply_styles(c, s['style']);
+    return c;
+}
+
+function build_data (d, data) {
+
+    if (d && data) {
+
+        if (typeof d === 'string') d = { source: d };
+        return (
+            d.source === 'atoms'
+                ? data.atoms()
+                : d.source === 'tuples'
+                    ? data.tuples()
+                    : []
+        );
+
+    }
+
+    return [];
+
+}
+
+function build_label (l, data) {
+    const lbl = default_label(data);
+    if (l) {
+        apply_attrs(lbl, l['attribute']);
+        apply_styles(lbl, l['style']);
+    }
+    return lbl;
+}
+
+function build_line (s) {
+    const l = default_line();
+    apply_attrs(l, s['attribute']);
+    apply_styles(l, s['style']);
+    return l;
+}
+
+function build_rectangle (s) {
+    const r = default_rectangle();
+    apply_attrs(r, s['attribute']);
+    apply_styles(r, s['style']);
+    return r;
+}
+
+function build_shape (s) {
+
+    if (s) {
+
+        if (typeof s === 'string') s = { type: s };
+        return (
+            s.type === 'circle'
+                ? build_circle(s)
+                : s.type === 'rectangle'
+                    ? build_rectangle(s)
+                    : s.type === 'line'
+                        ? build_line(s)
+                        : null
+        );
+
+    }
+
+}
+
+function default_circle () {
+    return circle()
+        .attr('r', 42)
+        .style('fill', '#304148')
+        .style('stroke', '#f8f8f8')
+        .style('stroke-width', 2);
+}
+
+function default_label (data) {
+    const l = label()
+        .attr('text-anchor', 'middle')
+        .attr('dominant-baseline', 'middle')
+        .style('fill', '#f8f8f2')
+        .style('font-family', 'monospace')
+        .style('font-size', 18)
+        .style('font-weight', 'bold')
+        .style('pointer-events', 'none')
+        .style('-webkit-user-select', 'none')
+        .style('-moz-user-select', 'none')
+        .style('-ms-user-select', 'none')
+        .style('user-select', 'none');
+    if (data && data.length && data[0].atoms) {
+        l.style('fill', '#121e25')
+            .style('font-weight', 'lighter')
+            .style('font-size', '10px');
+    }
+    return l;
+}
+
+function default_line () {
+    return line()
+        .style('stroke', '#304148')
+        .style('stroke-width', 1);
+}
+
+function default_rectangle () {
+    return rectangle()
+        .attr('width', 100)
+        .attr('height', 70)
+        .style('fill', '#304148')
+        .style('stroke', '#f8f8f8')
+        .style('stroke-width', 2)
+}
+
 // export * from './graph-data';
 
 exports.instance = instance;
@@ -862,6 +1235,8 @@ exports.data = data;
 exports.group = group;
 exports.circle = circle;
 exports.rectangle = rectangle;
+exports.line = line;
+exports.display = display;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 

@@ -28,35 +28,40 @@ file.on('change', function () {
 
 });
 
-function initialize (xml) {
+function initialize (doc) {
 
-    let instance = alloy.instance(xml);
+    let editor = initialize_editor();
+    let instance = alloy.instance(doc);
+    let data = alloy.data(instance);
+    let display = alloy.display(data);
+    let timeout = null;
+
+    function apply_yaml () {
+
+        let yaml = editor.getValue();
+        let style = jsyaml.safeLoad(yaml);
+        display.style(style);
+        display(svg);
+
+    }
+
+    function maybe_apply_yaml () {
+        clearTimeout(timeout);
+        timeout = setTimeout(apply_yaml, 750);
+    }
 
     d3.text('defaults/instance.yaml')
         .then(function (yaml) {
 
-            let editor = initialize_editor(yaml);
-            let timeout = null;
-
-            editor.on('changes', function (e) {
-
-                clearTimeout(timeout);
-
-                timeout = setTimeout(function () {
-
-                    render(instance, e.getValue());
-
-                }, 500);
-
-            });
-
-            render(instance, yaml);
+            editor.setValue(yaml);
+            editor.on('changes', maybe_apply_yaml);
+            apply_yaml();
 
         });
 
 }
 
-function initialize_editor (text) {
+function initialize_editor () {
 
     let left = d3.select('#left')
         .style('font-size', '16px');
@@ -71,9 +76,8 @@ function initialize_editor (text) {
     }
 
     return CodeMirror(left.node(), {
-        value: text,
+        // value: text,
         mode: 'yaml',
-        // theme: '3024-day',
         theme: 'oceanic-next',
         lineNumbers: true,
         tabSize: 2,
@@ -83,17 +87,5 @@ function initialize_editor (text) {
         keyMap: 'sublime',
         extraKeys: { Tab: betterTab }
     });
-
-}
-
-function render (instance, yaml) {
-
-    let data = alloy.data(instance);
-    let style = jsyaml.safeLoad(yaml);
-    let layout = alloy.parse_json(style);
-    let renderer = layout(data);
-
-    // svg.selectAll('*').remove();
-    renderer(svg);
 
 }
