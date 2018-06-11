@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import {tuple} from "./tuple";
+import {tuple} from "../../simple/tuple";
 
 export {graph};
 
@@ -124,6 +124,7 @@ function tuple_to_object (atoms) {
     return function (tuple) {
         return {
             atoms: tuple.atoms().map(atom => atoms.find(a => a.id === atom.label())),
+            field: tuple.field().label(),
             id: tuple.id(),
             type: 'tuple'
         }

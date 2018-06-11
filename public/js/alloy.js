@@ -435,6 +435,7 @@ function tuple_to_object (atoms) {
     return function (tuple) {
         return {
             atoms: tuple.atoms().map(atom => atoms.find(a => a.id === atom.label())),
+            field: tuple.field().label(),
             id: tuple.id(),
             type: 'tuple'
         }
@@ -976,6 +977,10 @@ function line () {
                 : attributes.get(name);
     };
 
+    _line.curve = function (_) {
+        return arguments.length ? (curve_function = _, _line) : curve_function;
+    };
+
     _line.reposition = function () {
         if (lines)
             lines
@@ -1013,10 +1018,15 @@ function line () {
 
 }
 
-
 function anchor$2 (d) {
     let l = this.getTotalLength();
-    d.anchor = this.getPointAtLength(0.5 * l);
+    if (d.anchor && d.anchor.percent) {
+        let p = this.getPointAtLength(d.anchor.percent * l);
+        d.anchor.x = p.x;
+        d.anchor.y = p.y;
+    } else {
+        this.getPointAtLength(0.5 * l);
+    }
 }
 
 function arrow (d) {
@@ -1113,7 +1123,7 @@ function label () {
     function alias (d) {
         if (d.type === 'tuple') {
             let label = d.field;
-            let intermediate = d.atoms.slice(1, -1);
+            let intermediate = d.projection.slice(1, -1);
             return intermediate.length
                 ? label + ' [' + intermediate.map(a => a.id) + ']'
                 : label;
@@ -1137,10 +1147,137 @@ function y$1 (d) {
     return d.anchor ? d.anchor.y : d.y;
 }
 
+function place_anchors (tuples) {
+
+    const counts = d3$1.map();
+    const indices = d3$1.map();
+
+    tuples.forEach(function (tuple) {
+
+        if (tuple.source && tuple.target) {
+
+            const key = key_function(tuple);
+
+            if (!counts.has(key)) {
+                counts.set(key, 0);
+                indices.set(key, 0);
+            }
+
+            counts.set(key, counts.get(key) + 1);
+
+        }
+
+    });
+
+    tuples.forEach(function (tuple) {
+
+        if (tuple.source && tuple.target) {
+
+            const key = key_function(tuple);
+
+            if (counts.has(key)) {
+
+                const count = counts.get(key);
+                const index = indices.get(key);
+                indices.set(key, index + 1);
+
+                if (!tuple.anchor) {
+                    tuple.anchor = {};
+                }
+
+                tuple.anchor.percent = calculate_anchor(index, count);
+
+            }
+
+        }
+
+    });
+
+}
+
+function key_function (tuple) {
+    return tuple.source.id + tuple.target.id;
+}
+
+function calculate_anchor (index, count) {
+    return 0.15 + 0.7 * (index + 1) * (1 / (count+1));
+}
+
+function atom_is_sig (sig) {
+    return function (atom) {
+        return atom.signature.includes(sig);
+    };
+}
+
+function tuple_is_field (fld) {
+    return function (tup) {
+        return tup.field === fld;
+    }
+}
+
+function curve_bundle_right (beta) {
+
+    const bundle = d3$1.line().curve(d3$1.curveBundle.beta(beta));
+
+    return function (d) {
+
+        const s = [d.source.x, d.source.y],
+            e = [d.target.x, d.target.y];
+
+        const xl = e[0] - s[0],
+            yl = e[1] - s[1];
+
+        const v = [xl, yl],
+            p = [-v[1], v[0]],
+            l = Math.sqrt(p[0] * p[0] + p[1] * p[1]),
+            n = [p[0] / l, p[1] / l];
+
+        const xc = s[0] + xl / 2,
+            yc = s[1] + yl / 2;
+
+        return bundle([
+            s,
+            [xc + l * n[0] / 2, yc + l * n[1] / 2],
+            e
+        ]);
+
+    }
+
+}
+
+function curve_bundle_left (beta) {
+
+    const bundle = d3$1.line().curve(d3$1.curveBundle.beta(beta));
+
+    return function (d) {
+
+        const s = [d.source.x, d.source.y],
+            e = [d.target.x, d.target.y];
+
+        const xl = e[0] - s[0],
+            yl = e[1] - s[1];
+
+        const v = [xl, yl],
+            p = [v[1], -v[0]],
+            l = Math.sqrt(p[0] * p[0] + p[1] * p[1]),
+            n = [p[0] / l, p[1] / l];
+
+        const xc = s[0] + xl / 2,
+            yc = s[1] + yl / 2;
+
+        return bundle([
+            s,
+            [xc + l * n[0] / 2, yc + l * n[1] / 2],
+            e
+        ]);
+
+    }
+
+}
+
 function display (data) {
 
     let groups = [];
-    let next_index = -1;
 
     function _display (svg) {
 
@@ -1160,7 +1297,8 @@ function display (data) {
             .append('g')
             .attr('class', 'alloy-group')
             .attr('id', function (d) { return d.id(); })
-            .merge(selection);
+            .merge(selection)
+            .order();
 
         selection.each(function (group$$1) {
             d3$1.select(this).call(group$$1);
@@ -1192,13 +1330,36 @@ function display (data) {
 
         }
 
+        if (json && json['layout']) {
+
+            const config = json['layout'];
+
+            if (config['positions']) {
+
+                const atoms = data.atoms();
+
+                d3$1.entries(config['positions']).forEach(function (p) {
+
+                    const atm = atoms.find(a => a.id === p.key);
+                    const pos = p.value;
+                    if (atm) {
+                        if ('x' in pos) atm.x = build_function(pos['x']);
+                        if ('y' in pos) atm.y = build_function(pos['y']);
+                    }
+
+                });
+
+            }
+
+        }
+
         if (json && json['groups']) {
 
             d3$1.entries(json['groups']).forEach(function (g) {
 
+                const gid = g.key;
                 const grp = g.value;
-                const idx = grp.index || (next_index += 1, next_index);
-                const gid = g.key || 'alloy-group-' + idx;
+                const idx = grp.index || 0;
 
                 const shp = build_shape(grp.shape);
                 const dat = build_data(grp.data, data);
@@ -1215,6 +1376,8 @@ function display (data) {
                 );
 
             });
+
+            place_anchors(data.tuples());
 
         } else {
 
@@ -1270,12 +1433,22 @@ function display (data) {
         let atoms = data.atoms();
         let tuples = data.tuples();
 
-        let cx = parseInt(svg.style('width')) / 2;
-        let cy = parseInt(svg.style('height')) / 2;
+        let width = parseInt(svg.style('width'));
+        let height = parseInt(svg.style('height'));
+        let cx = width / 2;
+        let cy = height / 2;
 
         atoms.forEach(function (a) {
-            if ('x' in a) a.fx = a.x;
-            if ('y' in a) a.fy = a.y;
+            if ('x' in a) {
+                a.fx = typeof a.x === 'function'
+                    ? a.x.call(svg, width)
+                    : a.x;
+            }
+            if ('y' in a) {
+                a.fy = typeof a.y === 'function'
+                    ? a.y.call(svg, height)
+                    : a.y;
+            }
         });
 
         let simulation = d3$1.forceSimulation(atoms)
@@ -1324,23 +1497,56 @@ function build_circle (s) {
     return c;
 }
 
+function build_curve (c) {
+    if (typeof c === 'string') {
+        c = {type: c};
+    }
+    if (c.type === 'bundle-right') {
+        let beta = c.beta !== undefined ? c.beta : 0.3;
+        return curve_bundle_right(beta);
+    }
+    if (c.type === 'bundle-left') {
+        let beta = c.beta !== undefined ? c.beta : 0.3;
+        return curve_bundle_left(beta);
+    }
+    return arc_straight;
+}
+
 function build_data (d, data) {
 
     if (d && data) {
 
         if (typeof d === 'string') d = { source: d };
-        return (
+        const unfiltered_data =
             d.source === 'atoms'
                 ? data.atoms()
                 : d.source === 'tuples'
                     ? data.tuples()
-                    : []
-        );
+                    : [];
+        return d.filter
+            ? unfiltered_data.filter(build_filter(d.filter))
+            : unfiltered_data;
 
     }
 
     return [];
 
+}
+
+function build_filter (f) {
+    if (f) {
+        if (f['signature'])
+            return atom_is_sig(f['signature']);
+        if (f['field'])
+            return tuple_is_field(f['field']);
+    }
+    return function () { return true; };
+}
+
+function build_function (code) {
+    return typeof code === 'string'
+        ? Function('"use strict"; return ' + code)()
+        : function () { return code; };
 }
 
 function build_label (l, data) {
@@ -1356,6 +1562,7 @@ function build_line (s) {
     const l = default_line();
     apply_attrs(l, s['attribute']);
     apply_styles(l, s['style']);
+    if (s['curve']) l.curve(build_curve(s['curve']));
     return l;
 }
 
@@ -1389,8 +1596,7 @@ function default_circle () {
     return circle()
         .attr('r', 42)
         .style('fill', '#304148')
-        .style('stroke', '#f8f8f8')
-        .style('stroke-width', 2);
+        .style('stroke', 'none');
 }
 
 function default_label (data) {
@@ -1425,11 +1631,8 @@ function default_rectangle () {
         .attr('width', 100)
         .attr('height', 70)
         .style('fill', '#304148')
-        .style('stroke', '#f8f8f8')
-        .style('stroke-width', 2)
+        .style('stroke', 'none');
 }
-
-// export * from './graph-data';
 
 exports.instance = instance;
 exports.graph = graph;

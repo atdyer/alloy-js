@@ -68,6 +68,10 @@ function line () {
                 : attributes.get(name);
     };
 
+    _line.curve = function (_) {
+        return arguments.length ? (curve_function = _, _line) : curve_function;
+    };
+
     _line.reposition = function () {
         if (lines)
             lines
@@ -105,10 +109,15 @@ function line () {
 
 }
 
-
 function anchor (d) {
     let l = this.getTotalLength();
-    d.anchor = this.getPointAtLength(0.5 * l);
+    if (d.anchor && d.anchor.percent) {
+        let p = this.getPointAtLength(d.anchor.percent * l);
+        d.anchor.x = p.x;
+        d.anchor.y = p.y;
+    } else {
+        this.getPointAtLength(0.5 * l);
+    }
 }
 
 function arrow (d) {

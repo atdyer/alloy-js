@@ -69,7 +69,7 @@ function label () {
     function alias (d) {
         if (d.type === 'tuple') {
             let label = d.field;
-            let intermediate = d.atoms.slice(1, -1);
+            let intermediate = d.projection.slice(1, -1);
             return intermediate.length
                 ? label + ' [' + intermediate.map(a => a.id) + ']'
                 : label;

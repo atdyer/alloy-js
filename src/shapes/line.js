@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import {arc_straight} from "../arcs/straight";
+import {arc_straight} from "../new/arcs/straight";
 import {label} from "./label";
 import {arrow} from "./arrow";
 

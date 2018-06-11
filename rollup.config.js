@@ -1,7 +1,7 @@
 import node from 'rollup-plugin-node-resolve';
 
 export default {
-    input: 'src/alloy',
+    input: 'src/new/alloy',
     plugins: [node()],
     output: {
         file: 'public/js/alloy.js',

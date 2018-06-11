@@ -4,13 +4,17 @@ import {circle} from './shapes/circle';
 import {line} from './shapes/line';
 import {rectangle} from './shapes/rectangle';
 import {label} from './label';
+import {place_anchors} from "./anchor";
+import {atom_is_sig} from "./filters/atom";
+import {tuple_is_field} from "./filters/tuple";
+import {curve_bundle_left, curve_bundle_right} from "./arcs/bundle";
+import {arc_straight} from "./arcs";
 
 export {display};
 
 function display (data) {
 
     let groups = [];
-    let next_index = -1;
 
     function _display (svg) {
 
@@ -30,7 +34,8 @@ function display (data) {
             .append('g')
             .attr('class', 'alloy-group')
             .attr('id', function (d) { return d.id(); })
-            .merge(selection);
+            .merge(selection)
+            .order();
 
         selection.each(function (group) {
             d3.select(this).call(group);
@@ -62,13 +67,36 @@ function display (data) {
 
         }
 
+        if (json && json['layout']) {
+
+            const config = json['layout'];
+
+            if (config['positions']) {
+
+                const atoms = data.atoms();
+
+                d3.entries(config['positions']).forEach(function (p) {
+
+                    const atm = atoms.find(a => a.id === p.key);
+                    const pos = p.value;
+                    if (atm) {
+                        if ('x' in pos) atm.x = build_function(pos['x']);
+                        if ('y' in pos) atm.y = build_function(pos['y']);
+                    }
+
+                });
+
+            }
+
+        }
+
         if (json && json['groups']) {
 
             d3.entries(json['groups']).forEach(function (g) {
 
+                const gid = g.key;
                 const grp = g.value;
-                const idx = grp.index || (next_index += 1, next_index);
-                const gid = g.key || 'alloy-group-' + idx;
+                const idx = grp.index || 0;
 
                 const shp = build_shape(grp.shape);
                 const dat = build_data(grp.data, data);
@@ -86,12 +114,14 @@ function display (data) {
 
             });
 
+            place_anchors(data.tuples());
+
         } else {
 
             _display.style({
                 groups: {
                     atoms: {
-                        shape: 'circle',
+                        shape: 'rectangle',
                         data: 'atoms',
                         index: 1
                     },
@@ -140,12 +170,22 @@ function display (data) {
         let atoms = data.atoms();
         let tuples = data.tuples();
 
-        let cx = parseInt(svg.style('width')) / 2;
-        let cy = parseInt(svg.style('height')) / 2;
+        let width = parseInt(svg.style('width'));
+        let height = parseInt(svg.style('height'));
+        let cx = width / 2;
+        let cy = height / 2;
 
         atoms.forEach(function (a) {
-            if ('x' in a) a.fx = a.x;
-            if ('y' in a) a.fy = a.y;
+            if ('x' in a) {
+                a.fx = typeof a.x === 'function'
+                    ? a.x.call(svg, width)
+                    : a.x;
+            }
+            if ('y' in a) {
+                a.fy = typeof a.y === 'function'
+                    ? a.y.call(svg, height)
+                    : a.y;
+            }
         });
 
         let simulation = d3.forceSimulation(atoms)
@@ -194,23 +234,56 @@ function build_circle (s) {
     return c;
 }
 
+function build_curve (c) {
+    if (typeof c === 'string') {
+        c = {type: c};
+    }
+    if (c.type === 'bundle-right') {
+        let beta = c.beta !== undefined ? c.beta : 0.3;
+        return curve_bundle_right(beta);
+    }
+    if (c.type === 'bundle-left') {
+        let beta = c.beta !== undefined ? c.beta : 0.3;
+        return curve_bundle_left(beta);
+    }
+    return arc_straight;
+}
+
 function build_data (d, data) {
 
     if (d && data) {
 
         if (typeof d === 'string') d = { source: d };
-        return (
+        const unfiltered_data =
             d.source === 'atoms'
                 ? data.atoms()
                 : d.source === 'tuples'
                     ? data.tuples()
-                    : []
-        );
+                    : [];
+        return d.filter
+            ? unfiltered_data.filter(build_filter(d.filter))
+            : unfiltered_data;
 
     }
 
     return [];
 
+}
+
+function build_filter (f) {
+    if (f) {
+        if (f['signature'])
+            return atom_is_sig(f['signature']);
+        if (f['field'])
+            return tuple_is_field(f['field']);
+    }
+    return function () { return true; };
+}
+
+function build_function (code) {
+    return typeof code === 'string'
+        ? Function('"use strict"; return ' + code)()
+        : function () { return code; };
 }
 
 function build_label (l, data) {
@@ -226,6 +299,7 @@ function build_line (s) {
     const l = default_line();
     apply_attrs(l, s['attribute']);
     apply_styles(l, s['style']);
+    if (s['curve']) l.curve(build_curve(s['curve']));
     return l;
 }
 
@@ -259,8 +333,7 @@ function default_circle () {
     return circle()
         .attr('r', 42)
         .style('fill', '#304148')
-        .style('stroke', '#f8f8f8')
-        .style('stroke-width', 2);
+        .style('stroke', 'none');
 }
 
 function default_label (data) {
@@ -295,6 +368,5 @@ function default_rectangle () {
         .attr('width', 100)
         .attr('height', 70)
         .style('fill', '#304148')
-        .style('stroke', '#f8f8f8')
-        .style('stroke-width', 2)
+        .style('stroke', 'none');
 }

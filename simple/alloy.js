@@ -1,4 +1,4 @@
 // export * from './data';
-export * from './graph';
+export * from '../src/new/graph';
 export * from './instance';
 export * from './render';
