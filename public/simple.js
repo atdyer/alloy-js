@@ -32,16 +32,15 @@ function initialize (doc) {
 
     let editor = initialize_editor();
     let instance = alloy.instance(doc);
+    // let data = alloy.data(instance);
     let data = alloy.graph(instance);
-    let display = alloy.display(data);
     let timeout = null;
 
     function apply_yaml () {
 
         let yaml = editor.getValue();
         let style = jsyaml.safeLoad(yaml);
-        display.style(style);
-        display(svg);
+        alloy.render(svg, data, style);
 
     }
 

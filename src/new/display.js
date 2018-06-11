@@ -14,6 +14,7 @@ function display (data) {
 
     function _display (svg) {
 
+        reorder('indexing');
         layout(svg);
 
         let selection = svg
@@ -34,6 +35,9 @@ function display (data) {
         selection.each(function (group) {
             d3.select(this).call(group);
         });
+
+        reorder('rendering');
+        reposition();
 
         return selection;
 
@@ -80,13 +84,6 @@ function display (data) {
                         .on('drag.group', reposition)
                 );
 
-
-            });
-
-            groups.sort(function (a, b) {
-
-                return a.index() - b.index();
-
             });
 
         } else {
@@ -112,6 +109,25 @@ function display (data) {
 
     };
 
+    function reorder (method) {
+
+        if (method === 'indexing') {
+            groups.sort(function (a, b) {
+                return a.index() - b.index();
+            });
+        }
+
+        if (method === 'rendering') {
+            groups.sort(function (a, b) {
+                return a.dataType() === 'atom'
+                    ? -1
+                    : b.dataType() === 'atom'
+                        ? 1
+                        : 0;
+            });
+        }
+
+    }
 
     function reposition () {
         groups.forEach(function (g) {

@@ -67,7 +67,16 @@ function label () {
 
 
     function alias (d) {
-        return aliases.get(d.id) || d.id;
+        if (d.type === 'tuple') {
+            let label = d.field;
+            let intermediate = d.atoms.slice(1, -1);
+            return intermediate.length
+                ? label + ' [' + intermediate.map(a => a.id) + ']'
+                : label;
+        }
+        if (d.type === 'atom') {
+            return aliases.get(d.id) || d.id;
+        }
     }
 
 

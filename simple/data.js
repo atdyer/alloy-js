@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import {flatten_fields, flatten_signatures} from "./util/graph-util";
+import {tuple} from "./tuple";
 
 export {data};
 
@@ -46,10 +46,12 @@ function data (inst) {
         return projected_tuples;
     };
 
-
     function reproject () {
         projected_atoms = atoms;
         projected_tuples = tuples;
+        projected_tuples.forEach(function (tuple) {
+            tuple.projection = tuple.atoms;
+        });
         projections.each(function (atm, sig) {
             let atom = projected_atoms.find(a => a.id === atm);
             let prj = project(sig, atom, projected_atoms, projected_tuples);
@@ -61,72 +63,43 @@ function data (inst) {
         needs_reproject = false;
     }
 
-
     return graph_data;
 
 }
 
+
+function atom_to_object (atom) {
+    return {
+        atom: atom,
+        id: atom.label(),
+        signature: build_signature_list(atom),
+        type: 'atom'
+    }
+}
+
+function tuple_to_object (atoms) {
+    return function (tuple) {
+        return {
+            atoms: tuple.atoms().map(atom => atoms.find(a => a.atom === atom)),
+            field: tuple.field().label(),
+            id: tuple.id(),
+            projection: tuple.atoms().map(atom => atoms.find(a => a.atom === atom)),
+            type: 'tuple'
+        }
+    }
+}
+
+
 function apply_source_target (tuples) {
     tuples.forEach(function (tup) {
-        if (tup.atoms.length) {
-            tup.source = tup.atoms[0];
-            tup.target = tup.atoms[tup.atoms.length - 1];
+        if (tup.projection.length) {
+            tup.source = tup.projection[0];
+            tup.target = tup.projection[tup.projection.length - 1];
         }
     });
 }
 
-function permute_joins (atoms, tuples) {
-
-    // TODO: Probably rethink this... how big will instances actually get?
-    // Oh boy... dear quadratic gods: please be gentle.
-
-    // Clear existing attributes
-    atoms.forEach(a => a.attributes = {});
-    tuples.forEach(t => t.attributes = {});
-
-    atoms.forEach(function (atom) {
-
-        tuples.forEach(function (tuple) {
-
-            if (tuple.atoms.length && tuple.atoms[0] === atom) {
-
-                if (!(tuple.field in atom.attributes))
-                    atom.attributes[tuple.field] = [];
-                atom.attributes[tuple.field].push(tuple.atoms.slice(1));
-
-            }
-
-        });
-
-    });
-
-    tuples.forEach(function (tuple) {
-
-        tuples.forEach(function (t) {
-
-            function index_match (acc, val, idx) {
-                return acc && val === t.atoms[idx];
-            }
-
-            if (tuple.atoms.length < t.atoms.length) {
-
-                if (tuple.atoms.reduce(index_match, true) === true) {
-
-                    if (!(t.field in tuple.attributes))
-                        tuple.attributes[t.field] = [];
-                    tuple.attributes[t.field].push(t.atoms.slice(tuple.atoms.length));
-
-                }
-
-            }
-
-        });
-
-    })
-
-}
-
-function atom_to_object (atom) {
+function _atom_to_object (atom) {
     return {
         atom: atom,
         id: atom.label(),
@@ -142,6 +115,7 @@ function atoms_of_signature (sig, atoms) {
 }
 
 function build_signature_list (atom) {
+
     let parent = atom.parent(),
         sig = [];
 
@@ -151,6 +125,90 @@ function build_signature_list (atom) {
     }
 
     return sig;
+
+}
+
+function flatten_signatures (inst) {
+
+    return d3.merge(
+        inst.signatures()
+            .map(function (sig) {
+                return sig.atoms()
+            })
+    );
+
+}
+
+function flatten_fields (inst, atoms) {
+
+    const atom_map = d3.map(atoms, function (atm) {
+        return atm.label();
+    });
+
+    const tups = d3.merge(
+        inst.fields()
+            .map(function (fld) {
+                return fld.tuples();
+            })
+    );
+
+    return tups.map(function (tup) {
+        const atoms = tup.atoms().map(function (atm) {
+            return atom_map.get(atm.label());
+        });
+        return tuple(atoms, tup.field());
+    });
+
+}
+
+function permute_joins (atoms, tuples) {
+
+    // TODO: Probably rethink this... how big will instances actually get?
+    // Oh boy... dear quadratic gods: please be gentle.
+
+    // Clear existing attributes
+    atoms.forEach(a => a.attributes = {});
+    tuples.forEach(t => t.attributes = {});
+
+    atoms.forEach(function (atom) {
+
+        tuples.forEach(function (tuple) {
+
+            if (tuple.projection.length && tuple.projection[0] === atom) {
+
+                if (!(tuple.field in atom.attributes))
+                    atom.attributes[tuple.field] = [];
+                atom.attributes[tuple.field].push(tuple.projection.slice(1));
+
+            }
+
+        });
+
+    });
+
+    tuples.forEach(function (tuple) {
+
+        tuples.forEach(function (t) {
+
+            function index_match (acc, val, idx) {
+                return acc && val === t.projection[idx];
+            }
+
+            if (tuple.projection.length < t.projection.length) {
+
+                if (tuple.projection.reduce(index_match, true) === true) {
+
+                    if (!(t.field in tuple.attributes))
+                        tuple.attributes[t.field] = [];
+                    tuple.attributes[t.field].push(t.projection.slice(tuple.projection.length));
+
+                }
+
+            }
+
+        });
+
+    })
 
 }
 
@@ -172,7 +230,7 @@ function project(sig, atm, atoms, tuples) {
         }) === undefined;
     });
 
-    // Remove column sig from tuples
+    // Remove atm from remaining tuples
     projected_tuples.forEach(function (tuple) {
         tuple.atoms = tuple.atoms.filter(function (atom) {
             return atom !== atm;
@@ -186,7 +244,7 @@ function project(sig, atm, atoms, tuples) {
 
 }
 
-function tuple_to_object (atoms) {
+function _tuple_to_object (atoms) {
     return function (tuple) {
         return {
             arity: tuple.arity(),

@@ -287,176 +287,163 @@ function instance (doc) {
 
 }
 
-// Returns a list of all atoms in the instance
-function flatten_signatures (inst) {
+function tuple$1 (atoms, field) {
 
-    return d3.merge(
-        inst.signatures()
-            .map(function (sig) {
-                return sig.atoms()
-            })
-    );
+    const _tuple = {};
 
-}
+    const _atoms = atoms,
+        _field = field;
 
-// Returns a list of all tuples in the instance
-function flatten_fields (inst, atoms) {
+    _tuple.arity = function () {
+        return _atoms.length;
+    };
 
-    const atom_map = d3.map(atoms, function (atm) {
-        return atm.label();
-    });
+    _tuple.atoms = function () {
+        return _atoms;
+    };
 
-    const tups = d3.merge(
-        inst.fields()
-            .map(function (fld) {
-                return fld.tuples();
-            })
-    );
+    _tuple.field = function () {
+        return _field;
+    };
 
-    return tups.map(function (tup) {
-        const atoms = tup.atoms().map(function (atm) {
-            return atom_map.get(atm.label());
-        });
-        return tuple(atoms, tup.field());
-    });
+    _tuple.id = function () {
+        return _tuple.field().label() + '[' + _tuple.atoms().map(a => a.label()) + ']';
+    };
+
+    return _tuple;
 
 }
 
-function data (inst) {
+function graph (inst) {
 
-    const atom_list = flatten_signatures(inst);
-    const tuple_list = flatten_fields(inst, atom_list);
+    const atom_list = signatures_to_atoms(inst);
+    const tuple_list = fields_to_tuples(inst, atom_list);
 
     const atoms = atom_list.map(atom_to_object);
     const tuples = tuple_list.map(tuple_to_object(atoms));
 
+    const projections = d3$1.map();
+    let needs_reproject = true;
     let projected_atoms = atoms;
     let projected_tuples = tuples;
-    let needs_reproject = true;
 
-    const graph_data = {};
-    const projections = d3$1.map();
+    const _graph = {};
 
-    graph_data.atoms = function () {
+    _graph.atoms = function () {
         if (needs_reproject) reproject();
         return projected_atoms;
     };
 
-    graph_data.clear_projections = function () {
+    _graph.clear_projections = function () {
         projections.clear();
         needs_reproject = true;
+        return _graph;
     };
 
-    graph_data.remove_projection = function (sig) {
+    _graph.remove_projection = function (sig) {
         projections.remove(sig);
         needs_reproject = true;
+        return _graph;
     };
 
-    graph_data.set_projection = function (sig, atm) {
+    _graph.set_projection = function (sig, atm) {
         projections.set(sig, atm);
         needs_reproject = true;
+        return _graph;
     };
 
-    graph_data.tuples = function () {
+    _graph.tuples = function () {
         if (needs_reproject) reproject();
         return projected_tuples;
     };
 
-
     function reproject () {
+
         projected_atoms = atoms;
         projected_tuples = tuples;
+
+        projected_tuples.forEach(function (tuple) {
+            tuple.projection = tuple.atoms;
+            tuple.source = null;
+            tuple.target = null;
+        });
+
         projections.each(function (atm, sig) {
             let atom = projected_atoms.find(a => a.id === atm);
-            let prj = project$1(sig, atom, projected_atoms, projected_tuples);
+            let prj = project(sig, atom, projected_atoms, projected_tuples);
             projected_atoms = prj.atoms;
             projected_tuples = prj.tuples;
         });
-        permute_joins(projected_atoms, projected_tuples);
-        apply_source_target(projected_tuples);
+
+        // Set the source and target atoms for each tuple
+        projected_tuples.forEach(function (tuple) {
+            tuple.source = tuple.projection[0];
+            tuple.target = tuple.projection[tuple.projection.length - 1];
+        });
+
         needs_reproject = false;
     }
 
-
-    return graph_data;
+    return _graph;
 
 }
 
-function apply_source_target (tuples) {
-    tuples.forEach(function (tup) {
-        if (tup.atoms.length) {
-            tup.source = tup.atoms[0];
-            tup.target = tup.atoms[tup.atoms.length - 1];
-        }
+
+function project(sig, atm, atoms, tuples) {
+
+    // Get all atoms of signature sig
+    const sig_atoms = atoms.filter(function (atom) {
+        return atom.signature.includes(sig);
     });
-}
 
-function permute_joins (atoms, tuples) {
+    // Remove all tuples that contain an atom in sig unless it is atm
+    const projected_tuples = tuples.filter(function (tuple) {
+        return tuple.atoms.find(function (atom) {
+            return atom !== atm && sig_atoms.includes(atom);
+        }) === undefined;
+    });
 
-    // TODO: Probably rethink this... how big will instances actually get?
-    // Oh boy... dear quadratic gods: please be gentle.
-
-    // Clear existing attributes
-    atoms.forEach(a => a.attributes = {});
-    tuples.forEach(t => t.attributes = {});
-
-    atoms.forEach(function (atom) {
-
-        tuples.forEach(function (tuple) {
-
-            if (tuple.atoms.length && tuple.atoms[0] === atom) {
-
-                if (!(tuple.field in atom.attributes))
-                    atom.attributes[tuple.field] = [];
-                atom.attributes[tuple.field].push(tuple.atoms.slice(1));
-
-            }
-
+    // Remove atm from the projection list
+    projected_tuples.forEach(function (tuple) {
+        tuple.projection = tuple.projection.filter(function (atom) {
+            return atom !== atm;
         });
-
     });
 
-    tuples.forEach(function (tuple) {
-
-        tuples.forEach(function (t) {
-
-            function index_match (acc, val, idx) {
-                return acc && val === t.atoms[idx];
-            }
-
-            if (tuple.atoms.length < t.atoms.length) {
-
-                if (tuple.atoms.reduce(index_match, true) === true) {
-
-                    if (!(t.field in tuple.attributes))
-                        tuple.attributes[t.field] = [];
-                    tuple.attributes[t.field].push(t.atoms.slice(tuple.atoms.length));
-
-                }
-
-            }
-
-        });
-
+    // Remove all atoms in sig
+    const projected_atoms = atoms.filter(function (atom) {
+        return !sig_atoms.includes(atom);
     });
+
+    return {
+        atoms: projected_atoms,
+        tuples: projected_tuples
+    };
 
 }
+
 
 function atom_to_object (atom) {
     return {
-        atom: atom,
         id: atom.label(),
-        signature: build_signature_list(atom)
+        signature: build_signature_list(atom),
+        type: 'atom'
     }
 }
 
-function atoms_of_signature (sig, atoms) {
-    return atoms.filter(function (atom) {
-        return atom.signature.includes(sig);
-    });
+function tuple_to_object (atoms) {
+    return function (tuple) {
+        return {
+            atoms: tuple.atoms().map(atom => atoms.find(a => a.id === atom.label())),
+            id: tuple.id(),
+            type: 'tuple'
+        }
+    }
 }
 
+
 function build_signature_list (atom) {
+
     let parent = atom.parent(),
         sig = [];
 
@@ -469,130 +456,31 @@ function build_signature_list (atom) {
 
 }
 
-function project$1(sig, atm, atoms, tuples) {
-
-    // Get all atoms of signature sig
-    const sig_atoms = atoms_of_signature(sig, atoms);
-
-    // Filter out atoms of projected signature to get
-    // list of atoms that will be visible
-    const projected_atoms = atoms.filter(function (atom) {
-        return !sig_atoms.includes(atom);
+function fields_to_tuples (inst, atoms) {
+    const atom_map = d3$1.map(atoms, function (atm) {
+        return atm.label();
     });
-
-    // Remove tuples that contain an atom in sig unless that atom is atm
-    const projected_tuples = tuples.filter(function (tuple) {
-        return tuple.atoms.find(function (atom) {
-            return atom !== atm && sig_atoms.includes(atom);
-        }) === undefined;
-    });
-
-    // Remove column sig from tuples
-    projected_tuples.forEach(function (tuple) {
-        tuple.atoms = tuple.atoms.filter(function (atom) {
-            return atom !== atm;
+    const tuples = d3$1.merge(
+        inst.fields()
+            .map(function (fld) {
+                return fld.tuples();
+            })
+    );
+    return tuples.map(function (tup) {
+        const atoms = tup.atoms().map(function (atm) {
+            return atom_map.get(atm.label());
         });
-    });
-
-    return {
-        atoms: projected_atoms,
-        tuples: projected_tuples
-    };
-
+        return tuple$1(atoms, tup.field());
+    })
 }
 
-function tuple_to_object (atoms) {
-    return function (tuple) {
-        return {
-            arity: tuple.arity(),
-            atoms: tuple.atoms().map(atom => atoms.find(a => a.atom === atom)),
-            field: tuple.field().label(),
-            id: tuple.id(),
-            tuple: tuple
-        }
-    }
-}
-
-function label () {
-
-    let labels;
-
-    let aliases = d3$1.map(),
-        attributes = d3$1.map(),
-        styles = d3$1.map();
-
-    function _label (selection) {
-
-        selection
-            .selectAll('.label')
-            .remove();
-
-        labels = selection
-            .append('text')
-            .attr('class', 'label')
-            .attr('x', x)
-            .attr('y', y)
-            .text(alias);
-
-        attributes.each(function (value, key) {
-            labels.attr(key, value);
-        });
-
-        styles.each(function (value, key) {
-            labels.style(key, value);
-        });
-
-        return labels;
-
-    }
-
-    _label.attr = function (name, value) {
-        return arguments.length > 1
-            ? (labels
-                ? labels.attr(name, value)
-                : attributes.set(name, value),
-                _label)
-            : labels
-                ? labels.attr(name)
-                : attributes.get(name);
-    };
-
-    _label.reposition = function () {
-        if (labels)
-            labels
-                .attr('x', x)
-                .attr('y', y);
-        return _label;
-    };
-
-    _label.style = function (name, value) {
-        return arguments.length > 1
-            ? (labels
-                ? labels.style(name, value)
-                : styles.set(name, value),
-                _label)
-            : labels
-                ? labels.style(name)
-                : styles.get(name);
-    };
-
-
-    function alias (d) {
-        return aliases.get(d.id) || d.id;
-    }
-
-
-    return _label;
-
-}
-
-
-function x (d) {
-    return d.anchor ? d.anchor.x : d.x;
-}
-
-function y (d) {
-    return d.anchor ? d.anchor.y : d.y;
+function signatures_to_atoms (inst) {
+    return d3$1.merge(
+        inst.signatures()
+            .map(function (sig) {
+                return sig.atoms();
+            })
+    );
 }
 
 function group () {
@@ -628,7 +516,9 @@ function group () {
             .call(shape)
             .call(_drag);
 
-        if (_label) groups.call(_label);
+        if (_label) {
+            groups.call(_label);
+        }
 
         return groups;
 
@@ -636,6 +526,10 @@ function group () {
 
     _group.data = function (_) {
         return arguments.length ? (data = _, _group) : data;
+    };
+
+    _group.dataType = function () {
+        return data && data.length ? data[0].type : null;
     };
 
     _group.id = function (_) {
@@ -674,6 +568,83 @@ function group () {
 
 }
 
+function find_angle (p1, p2) {
+    return Math.atan2(p1.y - p2.y, p1.x - p2.x) * (180 / Math.PI);
+}
+
+function find_intersection (path, is_inside, tolerance) {
+
+    tolerance = tolerance || 0.1;
+
+    const length = path.getTotalLength();
+
+    if (length) {
+
+        let n1 = 0;
+        let n2 = length;
+        let nm = (n1 + n2) / 2;
+
+        const p1 = path.getPointAtLength(n1);
+        const p2 = path.getPointAtLength(n2);
+        let md = path.getPointAtLength(nm);
+        let md_next;
+
+        const is_p1 = is_inside(p1);
+        let is_p2 = is_inside(p2);
+        let is_md;
+
+        // Start point must be outside shape
+        if (is_p1) {
+            return p2;
+        }
+
+        // End point must be inside shape
+        if (!is_p2) {
+            return p2;
+        }
+
+        // Binary search
+        let diff = tolerance;
+        while (!(diff < tolerance)) {
+
+            // Is the midpoint inside the shape?
+            is_md = is_inside(md);
+
+            // Pick a side
+            if (is_md) {
+                n2 = nm;
+            } else {
+                n1 = nm;
+            }
+
+            // New distance along path that midpoint falls
+            nm = (n1 + n2) / 2;
+
+            // Find the next midpoint
+            md_next = path.getPointAtLength(nm);
+
+            // Calculate difference between previous midpoint and new midpoint
+            diff = distance(md_next, md);
+
+            // Set the current midpoint
+            md = md_next;
+
+        }
+
+        return md;
+
+    }
+
+}
+
+function distance (p1, p2) {
+
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    return Math.sqrt(dx*dx + dy*dy);
+
+}
+
 function circle () {
 
     let circles;
@@ -695,10 +666,14 @@ function circle () {
             .attr('class', 'shape')
             .attr('cx', cx)
             .attr('cy', cy)
-            .attr('r', r);
+            .attr('r', r)
+            .on('click', function (d) {
+                console.log(d);
+            });
 
         circles.each(function (d) {
             d._shape = _circle;
+            d._element = this;
         });
 
         attributes.each(function (value, key) {
@@ -724,12 +699,36 @@ function circle () {
                 : attributes.get(name);
     };
 
+    _circle.intersection = function (element, path) {
+        const target_circle = d3$1.select(element);
+        const length = path.getTotalLength();
+        const stroke = +target_circle.style('stroke-width') || 0;
+        let radius = +target_circle.attr('r') || 0;
+        radius += stroke / 2;
+        if (length) {
+            const endpoint = path.getPointAtLength(length);
+            const intersect = path.getPointAtLength(length - (radius + 1));
+            const angle = find_angle(endpoint, intersect);
+            return {
+                x: intersect.x,
+                y: intersect.y,
+                angle: angle || 0
+            }
+        }
+        return {
+            x: target_circle.attr('cx'),
+            y: target_circle.attr('cy'),
+            angle: 0
+        }
+    };
+
     _circle.reposition = function () {
         if (circles)
             circles
                 .attr('cx', cx)
                 .attr('cy', cy)
-                .attr('r', r);
+                .attr('r', r)
+                .each(anchor);
         return _circle;
     };
 
@@ -761,6 +760,13 @@ function r () {
     return d3$1.select(this).attr('r') || 0;
 }
 
+function anchor (d) {
+    d.anchor = {
+        x: d.x,
+        y: d.y
+    };
+}
+
 function rectangle () {
 
     let rectangles;
@@ -780,10 +786,14 @@ function rectangle () {
 
         rectangles = selection
             .append('rect')
-            .attr('class', 'shape');
+            .attr('class', 'shape')
+            .on('click', function (d) {
+                console.log(d);
+            });
 
         rectangles.each(function (d) {
             d._shape = _rectangle;
+            d._element = this;
         });
 
         attributes.each(function (value, key) {
@@ -811,14 +821,35 @@ function rectangle () {
                 : attributes.get(name);
     };
 
+    _rectangle.intersection = function (element, path) {
+        const target_rect = d3$1.select(element);
+        const s = parseInt(target_rect.style('stroke-width')) || 0;
+        const w = parseInt(target_rect.attr('width')) + 2 * s;
+        const h = parseInt(target_rect.attr('height')) + 2 * s;
+        const x = parseInt(target_rect.attr('x')) - s;
+        const y = parseInt(target_rect.attr('y')) - s;
+        const l = path.getTotalLength();
+        const center = path.getPointAtLength(l);
+        let intersection = find_intersection(path, is_inside(x, y, w, h));
+        if (intersection) {
+            intersection.angle = find_angle(center, intersection);
+            return intersection;
+        }
+        return {
+            x: center.x,
+            y: center.y,
+            angle: 0
+        };
+    };
+
     _rectangle.reposition = function () {
         if (rectangles)
             rectangles
-                .attr('x', x$1)
-                .attr('y', y$1)
+                .attr('x', x)
+                .attr('y', y)
                 .attr('width', width)
                 .attr('height', height)
-                .each(anchor);
+                .each(anchor$1);
         return _rectangle;
     };
 
@@ -837,13 +868,13 @@ function rectangle () {
 
 }
 
-function x$1 (d) {
+function x (d) {
     const _x = d.x || 0;
     const _w = width.call(this);
     return _x - _w / 2;
 }
 
-function y$1 (d) {
+function y (d) {
     const _y = d.y || 0;
     const _h = height.call(this);
     return _y - _h / 2;
@@ -857,11 +888,19 @@ function height () {
     return +d3$1.select(this).attr('height') || 0;
 }
 
-function anchor (d) {
+function anchor$1 (d) {
     d.anchor = {
         x: d.x,
         y: d.y
     };
+}
+
+function is_inside(x, y, w, h) {
+
+    return function (pt) {
+        return pt.x >= x && pt.x <= x + w && pt.y >= y && pt.y <= y + h;
+    };
+
 }
 
 function arc_straight (d) {
@@ -874,7 +913,8 @@ function arc_straight (d) {
 
 function line () {
 
-    let lines;
+    let lines,
+        arrows;
 
     let curve_function = arc_straight;
 
@@ -890,20 +930,33 @@ function line () {
             .selectAll('.shape')
             .remove();
 
+        selection
+            .selectAll('.arrow')
+            .remove();
+
         lines = selection
             .append('path')
-            .attr('class', 'shape');
+            .attr('class', 'shape')
+            .on('click', function (d) {
+                console.log(d);
+            });
+
+        arrows = selection
+            .append('path')
+            .attr('class', 'arrow')
+            .attr('d', 'M -10 -5 L 0 0 L -10 5 z');
 
         lines.each(function (d) {
             d._shape = _line;
+            d._element = this;
         });
 
         attributes.each(function (value, key) {
-            lines.attr(key, value);
+            _line.attr(key, value);
         });
 
         styles.each(function (value, key) {
-            lines.style(key, value);
+            _line.style(key, value);
         });
 
         _line.reposition();
@@ -915,7 +968,7 @@ function line () {
     _line.attr = function (name, value) {
         return arguments.length > 1
             ? (lines
-                ? lines.attr(name, value)
+                ? apply_attribute(name, value)
                 : attributes.set(name, value),
                 _line)
             : lines
@@ -927,14 +980,15 @@ function line () {
         if (lines)
             lines
                 .attr('d', curve_function)
-                .each(anchor$1);
+                .each(anchor$2)
+                .each(arrow);
         return _line;
     };
 
     _line.style = function (name, value) {
         return arguments.length > 1
             ? (lines
-                ? lines.style(name, value)
+                ? apply_style(name, value)
                 : styles.set(name, value),
                 _line)
             : lines
@@ -942,14 +996,145 @@ function line () {
                 : styles.get(name);
     };
 
+    function apply_attribute (name, value) {
+        if (lines) lines.attr(name, value);
+        if (arrows) arrows.attr(name, value);
+    }
+
+    function apply_style (name, value) {
+        if (lines) lines.attr(name, value);
+        if (arrows) {
+            if (name !== 'fill') arrows.style(name, value);
+            if (name === 'stroke') arrows.style('fill', value);
+        }
+    }
+
     return _line;
 
 }
 
 
-function anchor$1 (d) {
+function anchor$2 (d) {
     let l = this.getTotalLength();
     d.anchor = this.getPointAtLength(0.5 * l);
+}
+
+function arrow (d) {
+
+    const target = d.target;
+
+    if (target && target._shape && target._element) {
+
+        const arrow = d3$1.select(this.parentNode).select('.arrow');
+        const shape = target._shape;
+        const element = target._element;
+
+        const intersection = typeof shape.intersection === 'function'
+            ? shape.intersection(element, this)
+            : arrow_anchor_fallback(target);
+
+        arrow.attr('transform', 'translate(' + intersection.x + ',' + intersection.y + ') rotate(' + intersection.angle + ')');
+
+    }
+}
+
+function arrow_anchor_fallback (shape) {
+    return {
+        x: shape.anchor ? shape.anchor.x : shape.x,
+        y: shape.anchor ? shape.anchor.y : shape.y,
+        angle: 0
+    };
+}
+
+function label () {
+
+    let labels;
+
+    let aliases = d3$1.map(),
+        attributes = d3$1.map(),
+        styles = d3$1.map();
+
+    function _label (selection) {
+
+        selection
+            .selectAll('.label')
+            .remove();
+
+        labels = selection
+            .append('text')
+            .attr('class', 'label')
+            .attr('x', x$1)
+            .attr('y', y$1)
+            .text(alias);
+
+        attributes.each(function (value, key) {
+            labels.attr(key, value);
+        });
+
+        styles.each(function (value, key) {
+            labels.style(key, value);
+        });
+
+        return labels;
+
+    }
+
+    _label.attr = function (name, value) {
+        return arguments.length > 1
+            ? (labels
+                ? labels.attr(name, value)
+                : attributes.set(name, value),
+                _label)
+            : labels
+                ? labels.attr(name)
+                : attributes.get(name);
+    };
+
+    _label.reposition = function () {
+        if (labels)
+            labels
+                .attr('x', x$1)
+                .attr('y', y$1);
+        return _label;
+    };
+
+    _label.style = function (name, value) {
+        return arguments.length > 1
+            ? (labels
+                ? labels.style(name, value)
+                : styles.set(name, value),
+                _label)
+            : labels
+                ? labels.style(name)
+                : styles.get(name);
+    };
+
+
+    function alias (d) {
+        if (d.type === 'tuple') {
+            let label = d.field;
+            let intermediate = d.atoms.slice(1, -1);
+            return intermediate.length
+                ? label + ' [' + intermediate.map(a => a.id) + ']'
+                : label;
+        }
+        if (d.type === 'atom') {
+            return aliases.get(d.id) || d.id;
+        }
+    }
+
+
+    return _label;
+
+}
+
+
+function x$1 (d) {
+    return d.anchor ? d.anchor.x : d.x;
+}
+
+function y$1 (d) {
+    return d.anchor ? d.anchor.y : d.y;
 }
 
 function display (data) {
@@ -959,6 +1144,7 @@ function display (data) {
 
     function _display (svg) {
 
+        reorder('indexing');
         layout(svg);
 
         let selection = svg
@@ -979,6 +1165,9 @@ function display (data) {
         selection.each(function (group$$1) {
             d3$1.select(this).call(group$$1);
         });
+
+        reorder('rendering');
+        reposition();
 
         return selection;
 
@@ -1025,13 +1214,6 @@ function display (data) {
                         .on('drag.group', reposition)
                 );
 
-
-            });
-
-            groups.sort(function (a, b) {
-
-                return a.index() - b.index();
-
             });
 
         } else {
@@ -1057,6 +1239,25 @@ function display (data) {
 
     };
 
+    function reorder (method) {
+
+        if (method === 'indexing') {
+            groups.sort(function (a, b) {
+                return a.index() - b.index();
+            });
+        }
+
+        if (method === 'rendering') {
+            groups.sort(function (a, b) {
+                return a.dataType() === 'atom'
+                    ? -1
+                    : b.dataType() === 'atom'
+                        ? 1
+                        : 0;
+            });
+        }
+
+    }
 
     function reposition () {
         groups.forEach(function (g) {
@@ -1231,7 +1432,7 @@ function default_rectangle () {
 // export * from './graph-data';
 
 exports.instance = instance;
-exports.data = data;
+exports.graph = graph;
 exports.group = group;
 exports.circle = circle;
 exports.rectangle = rectangle;

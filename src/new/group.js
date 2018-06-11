@@ -1,5 +1,3 @@
-import {label} from './label'
-
 export {group};
 
 function group () {
@@ -35,7 +33,9 @@ function group () {
             .call(shape)
             .call(_drag);
 
-        if (_label) groups.call(_label);
+        if (_label) {
+            groups.call(_label);
+        }
 
         return groups;
 
@@ -43,6 +43,10 @@ function group () {
 
     _group.data = function (_) {
         return arguments.length ? (data = _, _group) : data;
+    };
+
+    _group.dataType = function () {
+        return data && data.length ? data[0].type : null;
     };
 
     _group.id = function (_) {

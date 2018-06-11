@@ -2,7 +2,8 @@
 export * from './instance';
 // export * from './layout';
 // export * from './parsers/json';
-export * from './data';
+// export * from './data';
+export * from '../simple/graph';
 export * from './new/group';
 export * from './new/shapes/circle';
 export * from './new/shapes/rectangle';

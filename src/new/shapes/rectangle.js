@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+import {find_angle, find_intersection} from "../../util/arrow-util";
 
 export {rectangle};
 
@@ -21,10 +22,14 @@ function rectangle () {
 
         rectangles = selection
             .append('rect')
-            .attr('class', 'shape');
+            .attr('class', 'shape')
+            .on('click', function (d) {
+                console.log(d);
+            });
 
         rectangles.each(function (d) {
             d._shape = _rectangle;
+            d._element = this;
         });
 
         attributes.each(function (value, key) {
@@ -50,6 +55,27 @@ function rectangle () {
             : rectangles
                 ? rectangles.attr(name)
                 : attributes.get(name);
+    };
+
+    _rectangle.intersection = function (element, path) {
+        const target_rect = d3.select(element);
+        const s = parseInt(target_rect.style('stroke-width')) || 0;
+        const w = parseInt(target_rect.attr('width')) + 2 * s;
+        const h = parseInt(target_rect.attr('height')) + 2 * s;
+        const x = parseInt(target_rect.attr('x')) - s;
+        const y = parseInt(target_rect.attr('y')) - s;
+        const l = path.getTotalLength();
+        const center = path.getPointAtLength(l);
+        let intersection = find_intersection(path, is_inside(x, y, w, h));
+        if (intersection) {
+            intersection.angle = find_angle(center, intersection);
+            return intersection;
+        }
+        return {
+            x: center.x,
+            y: center.y,
+            angle: 0
+        };
     };
 
     _rectangle.reposition = function () {
@@ -103,4 +129,12 @@ function anchor (d) {
         x: d.x,
         y: d.y
     }
+}
+
+function is_inside(x, y, w, h) {
+
+    return function (pt) {
+        return pt.x >= x && pt.x <= x + w && pt.y >= y && pt.y <= y + h;
+    };
+
 }

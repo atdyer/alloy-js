@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+import {find_angle} from "../../util/arrow-util";
 
 export {circle};
 
@@ -23,10 +24,14 @@ function circle () {
             .attr('class', 'shape')
             .attr('cx', cx)
             .attr('cy', cy)
-            .attr('r', r);
+            .attr('r', r)
+            .on('click', function (d) {
+                console.log(d);
+            });
 
         circles.each(function (d) {
             d._shape = _circle;
+            d._element = this;
         });
 
         attributes.each(function (value, key) {
@@ -52,12 +57,36 @@ function circle () {
                 : attributes.get(name);
     };
 
+    _circle.intersection = function (element, path) {
+        const target_circle = d3.select(element);
+        const length = path.getTotalLength();
+        const stroke = +target_circle.style('stroke-width') || 0;
+        let radius = +target_circle.attr('r') || 0;
+        radius += stroke / 2;
+        if (length) {
+            const endpoint = path.getPointAtLength(length);
+            const intersect = path.getPointAtLength(length - (radius + 1));
+            const angle = find_angle(endpoint, intersect);
+            return {
+                x: intersect.x,
+                y: intersect.y,
+                angle: angle || 0
+            }
+        }
+        return {
+            x: target_circle.attr('cx'),
+            y: target_circle.attr('cy'),
+            angle: 0
+        }
+    };
+
     _circle.reposition = function () {
         if (circles)
             circles
                 .attr('cx', cx)
                 .attr('cy', cy)
-                .attr('r', r);
+                .attr('r', r)
+                .each(anchor);
         return _circle;
     };
 
@@ -87,4 +116,11 @@ function cy (d) {
 
 function r () {
     return d3.select(this).attr('r') || 0;
+}
+
+function anchor (d) {
+    d.anchor = {
+        x: d.x,
+        y: d.y
+    };
 }
