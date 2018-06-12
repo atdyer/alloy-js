@@ -50,7 +50,7 @@
     cm.replaceSelections(replacements);
   };
 
-  // Auto-updating Markdown list numbers when a new item is added to the
+  // Auto-updating Markdown list numbers when a src item is added to the
   // middle of a list
   function incrementRemainingMarkdownListNumbers(cm, pos) {
     var startLine = pos.line, lookAhead = 0, skipCount = 0;
@@ -79,7 +79,7 @@
         } else {
           if (startIndent.length > nextIndent.length) return;
           // This doesn't run if the next line immediatley indents, as it is
-          // not clear of the users intention (new indented item or same level)
+          // not clear of the users intention (src indented item or same level)
           if ((startIndent.length < nextIndent.length) && (lookAhead === 1)) return;
           skipCount += 1;
         }

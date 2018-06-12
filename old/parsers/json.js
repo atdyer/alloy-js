@@ -2,9 +2,9 @@ import {group} from '../group';
 import {circle} from '../shapes/circle';
 import {line} from '../shapes/line';
 import {rectangle} from "../shapes/rectangle";
-import {curve_bundle_left, curve_bundle_right} from '../new/arcs/bundle';
-import {atom_is_sig} from '../new/filters/atom';
-import {tuple_is_field} from '../new/filters/tuple';
+import {curve_bundle_left, curve_bundle_right} from '../src/arcs/bundle';
+import {atom_is_sig} from '../src/filters/atom';
+import {tuple_is_field} from '../src/filters/tuple';
 import {constant} from "../util/graph-util";
 import {layout} from "../layout";
 

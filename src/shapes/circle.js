@@ -1,167 +1,63 @@
 import * as d3 from 'd3';
-import {find_angle} from "../util/arrow-util";
-import {label} from "./label";
+import {find_angle} from "../../old/util/arrow-util";
 
 export {circle};
 
 function circle () {
 
-    let selection;
-
-    let x = x_center,
-        y = y_center,
-        anchor = anchor_center;
-
-    let draggable = true,
-        drag = d3.drag()
-            .on('drag.circle', dragged);
-
-    let labeller = label();
+    let circles;
 
     let attributes = d3.map(),
         styles = d3.map();
 
     attributes
-        .set('r', 42);
+        .set('r', 80);
 
-    styles
-        .set('fill', '#304148')
-        .set('stroke', '#f8f8f2')
-        .set('stroke-width', 2);
+    function _circle (selection) {
 
-    function _circle (g) {
+        selection
+            .selectAll('.shape')
+            .remove();
 
-        g.selectAll('*').remove();
-
-        selection = g
+        circles = selection
             .append('circle')
-            .attr('cx', function (d) { return d.x || 0; })
-            .attr('cy', function (d) { return d.y || 0; })
-            .attr('r', 0);
+            .attr('class', 'shape')
+            .attr('cx', cx)
+            .attr('cy', cy)
+            .attr('r', r)
+            .on('click', function (d) {
+                console.log(d);
+            });
 
-        selection.each(function (d) {
+        circles.each(function (d) {
             d._shape = _circle;
+            d._element = this;
         });
 
         attributes.each(function (value, key) {
-            selection.attr(key, value);
+            circles.attr(key, value);
         });
 
         styles.each(function (value, key) {
-            selection.style(key, value);
+            circles.style(key, value);
         });
 
-        selection.call(drag);
-
-        if (labeller) {
-            labeller(g, selection);
-        }
-
-        return selection;
-
-        // selection = group_selection
-        //     .selectAll('circle')
-        //     .data(function (d) { return [d]; })
-        //     .enter()
-        //     .append('circle');
-        //
-        // console.log(selection.size());
-    }
-
-    function __circle (g, data) {
-
-        data.forEach(function (d) {
-            d._shape = _circle;
-        });
-
-        // selection = g
-        //     .selectAll('circle')
-        //     .data(data);
-        //
-        // selection
-        //     .exit()
-        //     .remove();
-        //
-        // selection = selection
-        //     .enter()
-        //     .append('circle')
-        //     .attr('cx', 0)
-        //     .attr('cy', 0)
-        //     .attr('r', 0)
-        //     .merge(selection);
-
-        selection = g
-            .selectAll('g')
-            .data(data, function (d) { return d.id; });
-
-        selection
-            .selectAll('*')
-            .remove();
-
-        selection
-            .exit()
-            .remove();
-
-        selection = selection
-            .enter()
-            .append('g')
-            .attr('id', function (d) { return d.id; })
-            .merge(selection)
-            .append('circle')
-            .attr('cx', function (d) { return d.x || 0; })
-            .attr('cy', function (d) { return d.y || 0; })
-            .attr('r', 0);
-
-        attributes.each(function (value, key) {
-            selection.attr(key, value);
-        });
-
-        styles.each(function (value, key) {
-            selection.style(key, value);
-        });
-
-        selection.call(drag);
-
-        if (labeller) {
-            labeller(g, selection);
-        }
-
-        return selection;
+        return circles;
 
     }
-
-    _circle.anchor = function (_) {
-        return arguments.length ? (anchor = _, _circle) : anchor;
-    };
 
     _circle.attr = function (name, value) {
         return arguments.length > 1
-            ? (selection
-                ? selection.attr(name, value)
+            ? (circles
+                ? circles.attr(name, value)
                 : attributes.set(name, value),
                 _circle)
-            : selection
-                ? selection.attr(name)
+            : circles
+                ? circles.attr(name)
                 : attributes.get(name);
     };
 
-    _circle.drag = function () {
-        return drag;
-    };
-
-    _circle.draggable = function (_) {
-        return arguments.length ? (draggable = !!_, _circle) : draggable;
-    };
-
-    _circle.element = function (datum) {
-        if (selection)
-            return selection.nodes().find(function (element) {
-                return d3.select(element).datum() === datum;
-            });
-    };
-
     _circle.intersection = function (element, path) {
-
         const target_circle = d3.select(element);
         const length = path.getTotalLength();
         const stroke = +target_circle.style('stroke-width') || 0;
@@ -182,62 +78,49 @@ function circle () {
             y: target_circle.attr('cy'),
             angle: 0
         }
-
-    };
-
-    _circle.label = function (_) {
-        return arguments.length ? (labeller = _, _circle) : labeller;
     };
 
     _circle.reposition = function () {
-        if (selection)
-            selection
-                .attr('cx', x)
-                .attr('cy', y);
-        if (labeller)
-            labeller.reposition();
+        if (circles)
+            circles
+                .attr('cx', cx)
+                .attr('cy', cy)
+                .attr('r', r)
+                .each(anchor);
         return _circle;
     };
 
     _circle.style = function (name, value) {
         return arguments.length > 1
-            ? (selection
-                ? selection.style(name, value)
+            ? (circles
+                ? circles.style(name, value)
                 : styles.set(name, value),
                 _circle)
-            : selection
-                ? selection.style(name)
+            : circles
+                ? circles.style(name)
                 : styles.get(name);
     };
 
-    _circle.type = function () {
-        return 'circle';
-    };
-
-
-    function anchor_center (d) {
-        return {
-            x: x(d),
-            y: y(d)
-        }
-    }
-
-    function dragged (d) {
-        if (draggable) {
-            d.x = d3.event.x;
-            d.y = d3.event.y;
-        }
-    }
-
-    function x_center (d) {
-        return d.x;
-    }
-
-    function y_center (d) {
-        return d.y;
-    }
-
-
     return _circle;
 
+}
+
+
+function cx (d) {
+    return d.x || 0;
+}
+
+function cy (d) {
+    return d.y || 0;
+}
+
+function r () {
+    return d3.select(this).attr('r') || 0;
+}
+
+function anchor (d) {
+    d.anchor = {
+        x: d.x,
+        y: d.y
+    };
 }

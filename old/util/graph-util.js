@@ -1,4 +1,4 @@
-import {tuple} from "../tuple";
+import {tuple} from "../src/tuple";
 
 export {
     add_attribute,
@@ -26,7 +26,7 @@ export {
 // end of the list. Makes sure that it's possible to create lists of lists
 // intentionally (i.e. set an attribute for the first time as a list. Attempt
 // to set it again with another list, and the attribute will be converted
-// to a list of lists instead of simply appending the new list to the existing one.
+// to a list of lists instead of simply appending the src list to the existing one.
 function add_attribute (obj, fld, val) {
 
     if (fld in obj) {
@@ -245,7 +245,7 @@ function index_sort (a, b) {
 }
 
 // Every tuple that contains the atom (remove) is
-// replaced with a new tuple that has that atom
+// replaced with a src tuple that has that atom
 // removed
 function reduce_tuples (tuples, remove) {
     return tuples.map(function (tup) {

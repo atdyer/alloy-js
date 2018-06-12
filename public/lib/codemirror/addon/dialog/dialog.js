@@ -132,7 +132,7 @@
    * (default 5000ms timer) and always closes on click.
    *
    * If a notification is opened while another is opened, it will close the
-   * currently opened one and open the new one immediately.
+   * currently opened one and open the src one immediately.
    */
   CodeMirror.defineExtension("openNotification", function(template, options) {
     closeNotification(this, close);

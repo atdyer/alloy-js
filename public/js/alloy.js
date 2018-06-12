@@ -624,7 +624,7 @@ function find_intersection (path, is_inside, tolerance) {
             // Find the next midpoint
             md_next = path.getPointAtLength(nm);
 
-            // Calculate difference between previous midpoint and new midpoint
+            // Calculate difference between previous midpoint and src midpoint
             diff = distance(md_next, md);
 
             // Set the current midpoint
@@ -1384,7 +1384,7 @@ function display (data) {
             _display.style({
                 groups: {
                     atoms: {
-                        shape: 'circle',
+                        shape: 'rectangle',
                         data: 'atoms',
                         index: 1
                     },

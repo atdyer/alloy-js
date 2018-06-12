@@ -1,4 +1,4 @@
-export * from '../instance';
+export * from './instance';
 export * from './graph';
 export * from './group';
 export * from './shapes/circle';

@@ -55,7 +55,7 @@ function find_intersection (path, is_inside, tolerance) {
             // Find the next midpoint
             md_next = path.getPointAtLength(nm);
 
-            // Calculate difference between previous midpoint and new midpoint
+            // Calculate difference between previous midpoint and src midpoint
             diff = distance(md_next, md);
 
             // Set the current midpoint

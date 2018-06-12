@@ -1,100 +1,70 @@
 import * as d3 from 'd3';
-import {arc_straight} from "../new/arcs/straight";
-import {label} from "./label";
-import {arrow} from "./arrow";
+import {arc_straight} from "../arcs";
 
 export {line};
 
 function line () {
 
-    let selection;
+    let lines,
+        arrows;
 
-    let arr = arrow(_line);
     let curve_function = arc_straight;
-
-    let draggable = false,
-        drag = d3.drag();
-
-    let labeller = label()
-        .style('fill', '#121e25')
-        .style('font-weight', 'lighter')
-        .style('font-size', '10px');
 
     let attributes = d3.map(),
         styles = d3.map();
 
     styles
-        .set('fill', 'none')
-        .set('stroke', '#304148')
-        .set('stroke-width', 1);
+        .set('fill', 'none');
 
-    function _line (g, data) {
-
-        // selection = g
-        //     .selectAll('.line')
-        //     .data(data);
-        //
-        // selection
-        //     .exit()
-        //     .remove();
-        //
-        // selection = selection
-        //     .enter()
-        //     .append('path')
-        //     .attr('class', 'line')
-        //     .attr('id', t => t.id())
-        //     .merge(selection);
-
-        selection = g
-            .selectAll('g')
-            .data(data, function (d) { return d.id; });
+    function _line (selection) {
 
         selection
-            .selectAll('*')
+            .selectAll('.shape')
             .remove();
 
         selection
-            .exit()
+            .selectAll('.arrow')
             .remove();
 
-        selection = selection
-            .enter()
-            .append('g')
-            .attr('id', function (d) { return d.id; })
-            .merge(selection)
+        lines = selection
             .append('path')
-            .attr('class', 'line');
+            .attr('class', 'shape')
+            .on('click', function (d) {
+                console.log(d);
+            });
+
+        arrows = selection
+            .append('path')
+            .attr('class', 'arrow')
+            .attr('d', 'M -10 -5 L 0 0 L -10 5 z');
+
+        lines.each(function (d) {
+            d._shape = _line;
+            d._element = this;
+        });
 
         attributes.each(function (value, key) {
-            selection.attr(key, value);
+            _line.attr(key, value);
         });
 
         styles.each(function (value, key) {
-            selection.style(key, value);
+            _line.style(key, value);
         });
 
-        selection.call(drag);
+        _line.reposition();
 
-        if (arr)
-            arr(g, data);
-
-        if (labeller)
-            labeller(g, selection);
-
-        return selection;
+        return lines;
 
     }
 
-
     _line.attr = function (name, value) {
-        arr.attr(name, value);
         return arguments.length > 1
-            ? (selection
-                ? selection.attr(name, value)
+            ? (lines
+                ? apply_attribute(name, value)
                 : attributes.set(name, value),
                 _line)
-            : selection
-                ? selection.attr(name)
+            : lines
+                ? lines.attr(name)
                 : attributes.get(name);
     };
 
@@ -102,58 +72,77 @@ function line () {
         return arguments.length ? (curve_function = _, _line) : curve_function;
     };
 
-    _line.element = function (datum) {
-        if (selection)
-            return selection.nodes().find(function (element) {
-                return d3.select(element).datum() === datum;
-            });
-    };
-
-    _line.drag = function () {
-        return drag;
-    };
-
-    _line.draggable = function (_) {
-        return arguments.length ? (draggable = !!_, _line) : draggable;
-    };
-
-    _line.label = function (_) {
-        return arguments.length ? (labeller = !!_, _line) : labeller;
-    };
-
     _line.reposition = function () {
-
-        if (selection)
-            selection
-                .attr('d', curve_function);
-
-        if (arr)
-            arr.reposition();
-
-        if (labeller)
-            labeller.reposition();
-
+        if (lines)
+            lines
+                .attr('d', curve_function)
+                .each(anchor)
+                .each(arrow);
         return _line;
-
     };
 
     _line.style = function (name, value) {
-        arr.style(name, value);
-        if (name === 'stroke') arr.style('fill', value);
         return arguments.length > 1
-            ? (selection
-                ? selection.style(name, value)
+            ? (lines
+                ? apply_style(name, value)
                 : styles.set(name, value),
                 _line)
-            : selection
-                ? selection.style(name)
+            : lines
+                ? lines.style(name)
                 : styles.get(name);
     };
 
-    _line.type = function () {
-        return 'line';
-    };
+    function apply_attribute (name, value) {
+        if (lines) lines.attr(name, value);
+        if (arrows) arrows.attr(name, value);
+    }
+
+    function apply_style (name, value) {
+        if (lines) lines.attr(name, value);
+        if (arrows) {
+            if (name !== 'fill') arrows.style(name, value);
+            if (name === 'stroke') arrows.style('fill', value);
+        }
+    }
 
     return _line;
 
+}
+
+function anchor (d) {
+    let l = this.getTotalLength();
+    if (d.anchor && d.anchor.percent) {
+        let p = this.getPointAtLength(d.anchor.percent * l);
+        d.anchor.x = p.x;
+        d.anchor.y = p.y;
+    } else {
+        this.getPointAtLength(0.5 * l);
+    }
+}
+
+function arrow (d) {
+
+    const target = d.target;
+
+    if (target && target._shape && target._element) {
+
+        const arrow = d3.select(this.parentNode).select('.arrow');
+        const shape = target._shape;
+        const element = target._element;
+
+        const intersection = typeof shape.intersection === 'function'
+            ? shape.intersection(element, this)
+            : arrow_anchor_fallback(target);
+
+        arrow.attr('transform', 'translate(' + intersection.x + ',' + intersection.y + ') rotate(' + intersection.angle + ')');
+
+    }
+}
+
+function arrow_anchor_fallback (shape) {
+    return {
+        x: shape.anchor ? shape.anchor.x : shape.x,
+        y: shape.anchor ? shape.anchor.y : shape.y,
+        angle: 0
+    };
 }

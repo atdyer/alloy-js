@@ -1,26 +1,43 @@
-export { group };
+export {group};
 
 function group () {
 
     let data,
-        shape,
-        selection,
-        simulation;
+        shape;
 
-    let index,
+    let groups,
         id,
-        label;
+        index;
 
-    function _group (g) {
+    let _label,
+        _drag = d3.drag()
+            .on('drag.shape', dragged);
 
-        if (data && shape) {
+    _group.on = _drag.on;
 
-            // Bind the data (using shape) and get the selected visual elements
-            selection = shape(g, data);
+    function _group (selection) {
 
+        groups = selection.selectAll('.alloy-shape')
+            .data(g => g.data(), d => d.id);
+
+        groups
+            .exit()
+            .remove();
+
+        groups = groups
+            .enter()
+            .append('g')
+            .attr('class', 'alloy-shape')
+            .attr('id', function (d) { return d.id; })
+            .merge(groups)
+            .call(shape)
+            .call(_drag);
+
+        if (_label) {
+            groups.call(_label);
         }
 
-        return selection;
+        return groups;
 
     }
 
@@ -28,12 +45,8 @@ function group () {
         return arguments.length ? (data = _, _group) : data;
     };
 
-    _group.drag = function () {
-        return shape.drag();
-    };
-
-    _group.draggable = function (_) {
-        return shape.draggable(_);
+    _group.dataType = function () {
+        return data && data.length ? data[0].type : null;
     };
 
     _group.id = function (_) {
@@ -41,32 +54,33 @@ function group () {
     };
 
     _group.index = function (_) {
-        return arguments.length ? (index = _, _group) : index;
+        return arguments.length ? (index = +_, _group) : index;
     };
 
     _group.label = function (_) {
-        return arguments.length ? (label = _, _group) : label;
+        return arguments.length ? (_label = _, _group) : _label;
     };
 
-    _group.reposition = function () {
-        if (shape)
-            shape.reposition();
+    _group.on = function () {
+        _drag.on.apply(null, arguments);
         return _group;
     };
 
-    _group.selection = function () {
-        return selection;
+    _group.reposition = function () {
+        if (shape) shape.reposition();
+        _label.reposition();
     };
 
     _group.shape = function (_) {
         return arguments.length ? (shape = _, _group) : shape;
     };
 
-    _group.simulation = function (_) {
-        return arguments.length ? (simulation = _, _group) : simulation;
-    };
-
-
     return _group;
+
+
+    function dragged (d) {
+        d.x = (d.x || 0) + d3.event.dx;
+        d.y = (d.y || 0) + d3.event.dy;
+    }
 
 }

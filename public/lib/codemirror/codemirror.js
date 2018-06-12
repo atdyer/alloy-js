@@ -590,7 +590,7 @@ function markedSpansAfter(old, endCh, isInsert) {
   return nw
 }
 
-// Given a change object, compute the new set of marker spans that
+// Given a change object, compute the src set of marker spans that
 // cover the line in which the change took place. Removes spans
 // entirely within the change, reconnects spans belonging to the
 // same marker that appear on both sides of the change, and cuts off
@@ -757,7 +757,7 @@ function collapsedSpanAround(line, ch) {
 }
 
 // Test whether there exists a collapsed span that partially
-// overlaps (covers the start or end, but not both) of a new span.
+// overlaps (covers the start or end, but not both) of a src span.
 // Such overlap is not allowed.
 function conflictingCollapsedRange(doc, lineNo, from, to, marker) {
   var line = getLine(doc, lineNo)
@@ -2103,7 +2103,7 @@ function pushOperation(op) {
 
 function fireCallbacksForOps(group) {
   // Calls delayed callbacks and cursorActivity handlers until no
-  // new ones appear
+  // src ones appear
   var callbacks = group.delayedCallbacks, i = 0
   do {
     for (; i < callbacks.length; i++)
@@ -3417,7 +3417,7 @@ function scrollIntoView(cm, rect) {
   if (scrollPos.scrollLeft != null) { setScrollLeft(cm, scrollPos.scrollLeft) }
 }
 
-// Calculate a new scroll position needed to scroll the given
+// Calculate a src scroll position needed to scroll the given
 // rectangle into view. Returns an object with scrollTop and
 // scrollLeft properties. When these are undefined, the
 // vertical/horizontal position does not need to be adjusted.
@@ -3718,7 +3718,7 @@ function initScrollbars(cm) {
 // combined and executed at once.
 
 var nextOpId = 0
-// Start a new operation.
+// Start a src operation.
 function startOperation(cm) {
   cm.curOp = {
     cm: cm,
@@ -4192,7 +4192,7 @@ function updateDisplayIfNeeded(cm, update) {
     update.dims = getDimensions(cm)
   }
 
-  // Compute a suitable new viewport (from & to)
+  // Compute a suitable src viewport (from & to)
   var end = doc.first + doc.size
   var from = Math.max(update.visible.from - cm.options.viewportMargin, doc.first)
   var to = Math.min(end, update.visible.to + cm.options.viewportMargin)
@@ -4474,7 +4474,7 @@ function onScrollWheel(cm, e) {
   }
 }
 
-// Selection objects are immutable. A new one is created every time
+// Selection objects are immutable. A src one is created every time
 // the selection changes. A selection is one or more non-overlapping
 // (and non-touching) ranges, sorted, and an integer that indicates
 // which one is the primary selection (the one that's scrolled into
@@ -4800,14 +4800,14 @@ function addChangeToHistory(doc, change, selAfter, opId) {
     last = lst(cur.changes)
     if (cmp(change.from, change.to) == 0 && cmp(change.from, last.to) == 0) {
       // Optimized case for simple insertion -- don't want to add
-      // new changesets for every character typed
+      // src changesets for every character typed
       last.to = changeEnd(change)
     } else {
-      // Add new sub-event
+      // Add src sub-event
       cur.changes.push(historyChangeFromChange(doc, change))
     }
   } else {
-    // Can not be merged, start a new event.
+    // Can not be merged, start a src event.
     var before = lst(hist.done)
     if (!before || !before.ranges)
       { pushSelectionToHistory(doc.sel, hist.done) }
@@ -4837,14 +4837,14 @@ function selectionEventCanBeMerged(doc, origin, prev, sel) {
     new Date - doc.history.lastSelTime <= (doc.cm ? doc.cm.options.historyEventDelay : 500)
 }
 
-// Called whenever the selection changes, sets the new selection as
+// Called whenever the selection changes, sets the src selection as
 // the pending selection in the history, and pushes the old pending
 // selection into the 'done' array when it was significantly
 // different (in number of selected ranges, emptiness, or time).
 function addSelectionToHistory(doc, sel, opId, options) {
   var hist = doc.history, origin = options && options.origin
 
-  // A new event is started when the previous origin does not match
+  // A src event is started when the previous origin does not match
   // the current, or the origins don't allow matching. Origins
   // starting with * are always merged, those starting with + are
   // merged when similar and close together in time.
@@ -4954,7 +4954,7 @@ function copyHistoryArray(events, newGroup, instantiateSel) {
 }
 
 // The 'scroll' parameter given to many of these indicated whether
-// the new cursor position should be scrolled into view after
+// the src cursor position should be scrolled into view after
 // modifying the selection.
 
 // If shift is held or the extend flag is set, extends a range to
@@ -5039,7 +5039,7 @@ function setSelectionReplaceHistory(doc, sel, options) {
   }
 }
 
-// Set a new selection.
+// Set a src selection.
 function setSelection(doc, sel, options) {
   setSelectionNoUndo(doc, sel, options)
   addSelectionToHistory(doc, doc.sel, doc.cm ? doc.cm.curOp.id : NaN, options)
@@ -6670,7 +6670,7 @@ function normalizeKeyName(name) {
 // This is a kludge to keep keymaps mostly working as raw objects
 // (backwards compatibility) while at the same time support features
 // like normalization and multi-stroke key bindings. It compiles a
-// new normalized keymap, and then updates the old object to reflect
+// src normalized keymap, and then updates the old object to reflect
 // this.
 function normalizeKeyMap(keymap) {
   var copy = {}
@@ -7225,7 +7225,7 @@ function clickRepeat(pos, button) {
 }
 
 // A mouse down can be a single click, double click, triple click,
-// start of selection drag, start of text drag, new cursor
+// start of selection drag, start of text drag, src cursor
 // (ctrl-click), rectangle drag (alt-drag), or xwin
 // middle-click-paste. Or it might be a click on something we should
 // not interfere with, such as a scrollbar or widget.
@@ -8043,7 +8043,7 @@ function applyTextInput(cm, inserted, deleted, sel, origin) {
   }
 
   var updateInput
-  // Normal behavior is to insert the new text into every selection
+  // Normal behavior is to insert the src text into every selection
   for (var i$1 = sel.ranges.length - 1; i$1 >= 0; i$1--) {
     var range = sel.ranges[i$1]
     var from = range.from(), to = range.to()
@@ -9411,7 +9411,7 @@ TextareaInput.prototype.poll = function () {
     if (first == 0x200b && !prevInput) { prevInput = "\u200b" }
     if (first == 0x21da) { this.reset(); return this.cm.execCommand("undo") }
   }
-  // Find the part of the input that is actually new
+  // Find the part of the input that is actually src
   var same = 0, l = Math.min(prevInput.length, text.length)
   while (same < l && prevInput.charCodeAt(same) == text.charCodeAt(same)) { ++same }
 
