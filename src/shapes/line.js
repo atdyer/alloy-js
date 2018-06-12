@@ -27,7 +27,7 @@ function line () {
             .remove();
 
         lines = selection
-            .append('path')
+            .insert('path', ':first-child')
             .attr('class', 'shape')
             .on('click', function (d) {
                 console.log(d);

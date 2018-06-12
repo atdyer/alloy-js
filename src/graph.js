@@ -51,23 +51,33 @@ function graph (inst) {
         projected_atoms = atoms;
         projected_tuples = tuples;
 
+        // Clear any atom fields from previous projections
+        projected_atoms.forEach(function (atom) {
+            atom.fields = {};
+        });
+
+        // Clear any previous projections
         projected_tuples.forEach(function (tuple) {
             tuple.projection = tuple.atoms;
             tuple.source = null;
             tuple.target = null;
         });
 
+        // Perform projection
         projections.each(function (atm, sig) {
             let atom = projected_atoms.find(a => a.id === atm);
-            let prj = project(sig, atom, projected_atoms, projected_tuples);
-            projected_atoms = prj.atoms;
-            projected_tuples = prj.tuples;
+            if (atom) {
+                let prj = project(sig, atom, projected_atoms, projected_tuples);
+                projected_atoms = prj.atoms;
+                projected_tuples = prj.tuples;
+            }
         });
 
         // Set the source and target atoms for each tuple
         projected_tuples.forEach(function (tuple) {
             tuple.source = tuple.projection[0];
             tuple.target = tuple.projection[tuple.projection.length - 1];
+            tuple.source.fields[tuple.field] = tuple.projection.slice(1);
         });
 
         needs_reproject = false;
@@ -81,12 +91,12 @@ function graph (inst) {
 function project(sig, atm, atoms, tuples) {
 
     // Get all atoms of signature sig
-    const sig_atoms = atoms.filter(function (atom) {
-        return atom.signature.includes(sig);
+    let sig_atoms = atoms.filter(function (atom) {
+        return atom.signatures.includes(sig);
     });
 
     // Remove all tuples that contain an atom in sig unless it is atm
-    const projected_tuples = tuples.filter(function (tuple) {
+    let projected_tuples = tuples.filter(function (tuple) {
         return tuple.atoms.find(function (atom) {
             return atom !== atm && sig_atoms.includes(atom);
         }) === undefined;
@@ -97,6 +107,11 @@ function project(sig, atm, atoms, tuples) {
         tuple.projection = tuple.projection.filter(function (atom) {
             return atom !== atm;
         });
+    });
+
+    // Remove tuples that have no atoms in their projection
+    projected_tuples = projected_tuples.filter(function (tuple) {
+        return tuple.projection.length !== 0;
     });
 
     // Remove all atoms in sig
@@ -115,7 +130,7 @@ function project(sig, atm, atoms, tuples) {
 function atom_to_object (atom) {
     return {
         id: atom.label(),
-        signature: build_signature_list(atom),
+        signatures: build_signature_list(atom),
         type: 'atom'
     }
 }

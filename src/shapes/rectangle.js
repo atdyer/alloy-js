@@ -21,7 +21,7 @@ function rectangle () {
             .remove();
 
         rectangles = selection
-            .append('rect')
+            .insert('rect', ':first-child')
             .attr('class', 'shape')
             .on('click', function (d) {
                 console.log(d);

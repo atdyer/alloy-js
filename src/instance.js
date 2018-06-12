@@ -80,6 +80,13 @@ function instance (doc) {
             fields.set(fld.label(), fld);
         });
 
+    // Parse skolem
+    i.selectAll('skolem')
+        .each(function () {
+            const fld = field(d3.select(this), sigs.values());
+            fields.set(fld.label(), fld);
+        });
+
     // Parse file sources
     s.each(function () {
         const src = d3.select(this);

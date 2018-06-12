@@ -20,7 +20,7 @@ function circle () {
             .remove();
 
         circles = selection
-            .append('circle')
+            .insert('circle', ':first-child')
             .attr('class', 'shape')
             .attr('cx', cx)
             .attr('cy', cy)

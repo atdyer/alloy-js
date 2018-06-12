@@ -1,7 +1,7 @@
 import * as d3 from 'd3';
-import { tuple } from './tuple';
+import {tuple} from './tuple';
 
-export { field };
+export {field};
 
 function field (selection, signatures) {
 
@@ -61,7 +61,6 @@ function field (selection, signatures) {
                     const label = d3.select(d).attr('label');
                     return sig.atom(label);
                 });
-            atoms.field = _field;
             tuples.push(tuple(atoms, _field));
         });
 

@@ -177,7 +177,6 @@ function field (selection, signatures) {
                     const label = d3$1.select(d).attr('label');
                     return sig.atom(label);
                 });
-            atoms.field = _field;
             tuples.push(tuple(atoms, _field));
         });
 
@@ -263,6 +262,13 @@ function instance (doc) {
 
     // Parse fields
     i.selectAll('field')
+        .each(function () {
+            const fld = field(d3$1.select(this), sigs.values());
+            fields.set(fld.label(), fld);
+        });
+
+    // Parse skolem
+    i.selectAll('skolem')
         .each(function () {
             const fld = field(d3$1.select(this), sigs.values());
             fields.set(fld.label(), fld);
@@ -362,23 +368,37 @@ function graph (inst) {
         projected_atoms = atoms;
         projected_tuples = tuples;
 
+        // Clear any atom fields from previous projections
+        projected_atoms.forEach(function (atom) {
+            atom.fields = {};
+            atom.sets = [];
+        });
+
+        // Clear any previous projections
         projected_tuples.forEach(function (tuple) {
             tuple.projection = tuple.atoms;
             tuple.source = null;
             tuple.target = null;
         });
 
+        // Perform projection
         projections.each(function (atm, sig) {
             let atom = projected_atoms.find(a => a.id === atm);
-            let prj = project(sig, atom, projected_atoms, projected_tuples);
-            projected_atoms = prj.atoms;
-            projected_tuples = prj.tuples;
+            if (atom) {
+                let prj = project(sig, atom, projected_atoms, projected_tuples);
+                projected_atoms = prj.atoms;
+                projected_tuples = prj.tuples;
+            }
         });
 
         // Set the source and target atoms for each tuple
         projected_tuples.forEach(function (tuple) {
             tuple.source = tuple.projection[0];
             tuple.target = tuple.projection[tuple.projection.length - 1];
+            tuple.source.fields[tuple.field] = tuple.projection.slice(1);
+            // if (tuple.projection.length === 1) {
+            //     tuple.projection[0].sets.push(tuple.field);
+            // }
         });
 
         needs_reproject = false;
@@ -392,12 +412,12 @@ function graph (inst) {
 function project(sig, atm, atoms, tuples) {
 
     // Get all atoms of signature sig
-    const sig_atoms = atoms.filter(function (atom) {
-        return atom.signature.includes(sig);
+    let sig_atoms = atoms.filter(function (atom) {
+        return atom.signatures.includes(sig);
     });
 
     // Remove all tuples that contain an atom in sig unless it is atm
-    const projected_tuples = tuples.filter(function (tuple) {
+    let projected_tuples = tuples.filter(function (tuple) {
         return tuple.atoms.find(function (atom) {
             return atom !== atm && sig_atoms.includes(atom);
         }) === undefined;
@@ -408,6 +428,11 @@ function project(sig, atm, atoms, tuples) {
         tuple.projection = tuple.projection.filter(function (atom) {
             return atom !== atm;
         });
+    });
+
+    // Remove tuples that have no atoms in their projection
+    projected_tuples = projected_tuples.filter(function (tuple) {
+        return tuple.projection.length !== 0;
     });
 
     // Remove all atoms in sig
@@ -426,7 +451,7 @@ function project(sig, atm, atoms, tuples) {
 function atom_to_object (atom) {
     return {
         id: atom.label(),
-        signature: build_signature_list(atom),
+        signatures: build_signature_list(atom),
         type: 'atom'
     }
 }
@@ -663,7 +688,7 @@ function circle () {
             .remove();
 
         circles = selection
-            .append('circle')
+            .insert('circle', ':first-child')
             .attr('class', 'shape')
             .attr('cx', cx)
             .attr('cy', cy)
@@ -786,7 +811,7 @@ function rectangle () {
             .remove();
 
         rectangles = selection
-            .append('rect')
+            .insert('rect', ':first-child')
             .attr('class', 'shape')
             .on('click', function (d) {
                 console.log(d);
@@ -936,7 +961,7 @@ function line () {
             .remove();
 
         lines = selection
-            .append('path')
+            .insert('path', ':first-child')
             .attr('class', 'shape')
             .on('click', function (d) {
                 console.log(d);
@@ -1066,16 +1091,23 @@ function label () {
 
     function _label (selection) {
 
-        selection
+        labels = selection
             .selectAll('.label')
+            .data(lines);
+
+        labels
+            .exit()
             .remove();
 
-        labels = selection
-            .append('text')
+        labels = labels
+            .enter()
+            .insert('text')
             .attr('class', 'label')
+            .merge(labels)
             .attr('x', x$1)
             .attr('y', y$1)
-            .text(alias);
+            .attr('dy', dy)
+            .text(function (d) { return d.text; });
 
         attributes.each(function (value, key) {
             labels.attr(key, value);
@@ -1119,18 +1151,37 @@ function label () {
                 : styles.get(name);
     };
 
-
     function alias (d) {
         if (d.type === 'tuple') {
             let label = d.field;
             let intermediate = d.projection.slice(1, -1);
             return intermediate.length
-                ? label + ' [' + intermediate.map(a => a.id) + ']'
-                : label;
+                ? [label + ' [' + intermediate.map(a => a.id) + ']']
+                : [label];
         }
         if (d.type === 'atom') {
-            return aliases.get(d.id) || d.id;
+            let label = aliases.get(d.id) || d.id;
+            if (d.fields) {
+                let sets = d3$1.entries(d.fields).reduce((acc, o) => o.value.length ? acc : (acc.push(o.key), acc), []);
+                if (sets.length) {
+                    let set_str = '(' + sets.join(', ') + ')';
+                    return [label, set_str];
+                }
+            }
+            return [label];
         }
+    }
+
+    function lines (d) {
+
+        return alias(d).map(function (line, index) {
+            return {
+                dy: index > 0 ? 1.2 : 0,
+                parent: d,
+                text: line
+            }
+        });
+
     }
 
 
@@ -1140,11 +1191,15 @@ function label () {
 
 
 function x$1 (d) {
-    return d.anchor ? d.anchor.x : d.x;
+    return d.parent.anchor ? d.parent.anchor.x : d.parent.x;
 }
 
 function y$1 (d) {
-    return d.anchor ? d.anchor.y : d.y;
+    return d.parent.anchor ? d.parent.anchor.y : d.parent.y;
+}
+
+function dy (d, i, g) {
+    return i - 0.5 * (g.length - 1) + 'em';
 }
 
 function place_anchors (tuples) {
@@ -1486,7 +1541,9 @@ function apply_attrs (shape, attributes) {
 
 function apply_styles (shape, styles) {
     d3$1.entries(styles).forEach(function (style) {
-        shape.style(style.key, style.value);
+        let key = style.key;
+        let value = parse_value(style.value);
+        shape.style(key, value);
     });
 }
 
@@ -1632,6 +1689,13 @@ function default_rectangle () {
         .attr('height', 70)
         .style('fill', '#304148')
         .style('stroke', 'none');
+}
+
+function parse_value (v) {
+    if (~v.indexOf('function') || ~v.indexOf('=>')) {
+        return build_function(v);
+    }
+    return v;
 }
 
 exports.instance = instance;

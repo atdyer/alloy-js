@@ -223,7 +223,9 @@ function apply_attrs (shape, attributes) {
 
 function apply_styles (shape, styles) {
     d3.entries(styles).forEach(function (style) {
-        shape.style(style.key, style.value);
+        let key = style.key;
+        let value = parse_value(style.value);
+        shape.style(key, value);
     });
 }
 
@@ -369,4 +371,11 @@ function default_rectangle () {
         .attr('height', 70)
         .style('fill', '#304148')
         .style('stroke', 'none');
+}
+
+function parse_value (v) {
+    if (~v.indexOf('function') || ~v.indexOf('=>')) {
+        return build_function(v);
+    }
+    return v;
 }

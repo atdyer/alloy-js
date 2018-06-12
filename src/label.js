@@ -12,16 +12,23 @@ function label () {
 
     function _label (selection) {
 
-        selection
+        labels = selection
             .selectAll('.label')
+            .data(lines);
+
+        labels
+            .exit()
             .remove();
 
-        labels = selection
-            .append('text')
+        labels = labels
+            .enter()
+            .insert('text')
             .attr('class', 'label')
+            .merge(labels)
             .attr('x', x)
             .attr('y', y)
-            .text(alias);
+            .attr('dy', dy)
+            .text(function (d) { return d.text; });
 
         attributes.each(function (value, key) {
             labels.attr(key, value);
@@ -65,18 +72,37 @@ function label () {
                 : styles.get(name);
     };
 
-
     function alias (d) {
         if (d.type === 'tuple') {
             let label = d.field;
             let intermediate = d.projection.slice(1, -1);
             return intermediate.length
-                ? label + ' [' + intermediate.map(a => a.id) + ']'
-                : label;
+                ? [label + ' [' + intermediate.map(a => a.id) + ']']
+                : [label];
         }
         if (d.type === 'atom') {
-            return aliases.get(d.id) || d.id;
+            let label = aliases.get(d.id) || d.id;
+            if (d.fields) {
+                let sets = d3.entries(d.fields).reduce((acc, o) => o.value.length ? acc : (acc.push(o.key), acc), []);
+                if (sets.length) {
+                    let set_str = '(' + sets.join(', ') + ')';
+                    return [label, set_str];
+                }
+            }
+            return [label];
         }
+    }
+
+    function lines (d) {
+
+        return alias(d).map(function (line, index) {
+            return {
+                dy: index > 0 ? 1.2 : 0,
+                parent: d,
+                text: line
+            }
+        });
+
     }
 
 
@@ -86,9 +112,13 @@ function label () {
 
 
 function x (d) {
-    return d.anchor ? d.anchor.x : d.x;
+    return d.parent.anchor ? d.parent.anchor.x : d.parent.x;
 }
 
 function y (d) {
-    return d.anchor ? d.anchor.y : d.y;
+    return d.parent.anchor ? d.parent.anchor.y : d.parent.y;
+}
+
+function dy (d, i, g) {
+    return i - 0.5 * (g.length - 1) + 'em';
 }
