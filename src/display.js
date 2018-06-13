@@ -344,7 +344,7 @@ function default_label (data) {
         .attr('dominant-baseline', 'middle')
         .style('fill', '#f8f8f2')
         .style('font-family', 'monospace')
-        .style('font-size', 18)
+        .style('font-size', function (d, i) { return i ? 14 : 18})
         .style('font-weight', 'bold')
         .style('pointer-events', 'none')
         .style('-webkit-user-select', 'none')
@@ -374,8 +374,9 @@ function default_rectangle () {
 }
 
 function parse_value (v) {
-    if (~v.indexOf('function') || ~v.indexOf('=>')) {
-        return build_function(v);
-    }
-    return v;
+    return typeof v === 'string'
+        ? (~v.indexOf('function') || ~v.indexOf('=>'))
+            ? build_function(v)
+            : v
+        : v;
 }

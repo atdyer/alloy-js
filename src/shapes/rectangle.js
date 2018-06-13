@@ -24,7 +24,7 @@ function rectangle () {
             .insert('rect', ':first-child')
             .attr('class', 'shape')
             .on('click', function (d) {
-                console.log(d);
+                if (typeof d.print === 'function') d.print(d);
             });
 
         rectangles.each(function (d) {

@@ -26,7 +26,7 @@ function circle () {
             .attr('cy', cy)
             .attr('r', r)
             .on('click', function (d) {
-                console.log(d);
+                if (typeof d.print === 'function') d.print(d);
             });
 
         circles.each(function (d) {

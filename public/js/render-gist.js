@@ -69,10 +69,10 @@ function render (gist, inst) {
                     });
 
                 let svg = d3.select('svg');
-                let data = alloy.graph_data(instance);
-                let layout = alloy.parse_json(style);
-                let renderer = layout(data);
-                renderer(svg);
+                let data = alloy.graph(instance);
+                let display = alloy.display(data);
+                display.style(style);
+                display(svg);
 
             });
 

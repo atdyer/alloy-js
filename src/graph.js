@@ -77,7 +77,7 @@ function graph (inst) {
         projected_tuples.forEach(function (tuple) {
             tuple.source = tuple.projection[0];
             tuple.target = tuple.projection[tuple.projection.length - 1];
-            tuple.source.fields[tuple.field] = tuple.projection.slice(1);
+            set_tuple_source_fields(tuple);
         });
 
         needs_reproject = false;
@@ -86,6 +86,7 @@ function graph (inst) {
     return _graph;
 
 }
+
 
 
 function project(sig, atm, atoms, tuples) {
@@ -127,9 +128,11 @@ function project(sig, atm, atoms, tuples) {
 }
 
 
+
 function atom_to_object (atom) {
     return {
         id: atom.label(),
+        print: print_atom_object,
         signatures: build_signature_list(atom),
         type: 'atom'
     }
@@ -145,6 +148,7 @@ function tuple_to_object (atoms) {
         }
     }
 }
+
 
 
 function build_signature_list (atom) {
@@ -177,6 +181,41 @@ function fields_to_tuples (inst, atoms) {
         });
         return tuple(atoms, tup.field());
     })
+}
+
+function print_atom_object (d) {
+    console.log(d.id);
+    console.log('  Signatures:');
+    d.signatures
+        ? d.signatures.forEach(s => console.log('    ' + s))
+        : '    none';
+    console.log('  Fields:');
+    d.fields
+        ? d3.entries(d.fields).forEach(f => {
+            console.log('    ' + f.key);
+            f.value.forEach(function (v) {
+                Array.isArray(v)
+                    ? console.log('      ' + v.map(i => i.id).join(', '))
+                    : console.log('      ' + v.id);
+            });
+        })
+        : '    none';
+}
+
+function set_tuple_source_fields (tuple) {
+    const fields = tuple.source.fields[tuple.field];
+    if (Array.isArray(fields)) {
+        if (Array.isArray(fields[0])) {
+            fields.push(tuple.projection.slice(1));
+        } else {
+            tuple.source.fields[tuple.field] = [
+                fields,
+                tuple.projection.slice(1)
+            ]
+        }
+    } else {
+        tuple.source.fields[tuple.field] = tuple.projection.slice(1);
+    }
 }
 
 function signatures_to_atoms (inst) {

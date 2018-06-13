@@ -1,6 +1,5 @@
 const express = require('express');
 const fetch = require('../rest/fetch');
-const license = require('../rest/license');
 const octo = require('../rest/octokit');
 const router = express.Router();
 
@@ -11,7 +10,7 @@ module.exports = router;
 
 function gist_page (req, res) {
 
-    console.log('Gist page request:', req.params.user, ':', req.params.id);
+    console.log('Gist page request:', req.params.user + '/' + req.params.id);
 
     let user_promise = get_user(req.params.user);
     let gist_promise = get_gist(req.params.id)
@@ -92,9 +91,9 @@ function get_license (data) {
     let lic = data.dot_alloy.license;
 
     if (lic !== 'none') {
-        return license
+        return octo
             .find_license(lic)
-            .then(license.filter_license)
+            .then(octo.filter_license)
             .then(lic => (data.license = lic, data));
 
     }
@@ -105,6 +104,8 @@ function get_license (data) {
 }
 
 function get_user (user) {
+
+    console.log('Getting user');
 
     return octo.octokit
         .users

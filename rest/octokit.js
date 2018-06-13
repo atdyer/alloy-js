@@ -1,16 +1,27 @@
 const octokit = require('@octokit/rest')();
-
+const licenses = [];
 
 octokit.authenticate({
     type: 'token',
     token: process.env.GITHUB_ACCESS_TOKEN
 });
 
+octokit.misc.getLicenses({})
+    .then(({data, headers, status}) => {
+        console.log('Fetching licenses...');
+        Promise.all(data.map(fetch_license))
+            .then(() => console.log('Fetched ' + licenses.length + ' licenses'))
+            .catch(console.log);
+
+    });
+
 module.exports = {
     filter_alloy_gists: filter_alloy_gists,
     filter_file_data: filter_file_data,
     filter_gist_data: filter_gist_data,
+    filter_license: filter_license,
     filter_user_data: filter_user_data,
+    find_license: find_license,
     get_user_gists: get_user_gists,
     octokit: octokit,
     print_requests_remaining: print_requests_remaining,
@@ -24,6 +35,11 @@ function get_user_gists (user) {
         .gists
         .getForUser({username: user})
         .then(result => result['data']);
+}
+
+function fetch_license (license) {
+    return octokit.misc.getLicense({license: license.key})
+        .then(({data, headers, status}) => {licenses.push(data)});
 }
 
 function filter_alloy_gists (gists) {
@@ -48,6 +64,13 @@ function filter_gist_data (gist) {
     };
 }
 
+function filter_license (license) {
+    return {
+        name: license.name,
+        url: license.html_url
+    }
+}
+
 function filter_user_data (user) {
     return {
         avatar: user['avatar_url'] + '&s=60',
@@ -55,6 +78,15 @@ function filter_user_data (user) {
         login: user.login,
         name: user.name,
     }
+}
+
+function find_license (license) {
+    return new Promise((res) => {
+        res(licenses.find(l => l.key === license) || {
+            name: license,
+            html_url: 'https://opensource.org/licenses'
+        });
+    });
 }
 
 function print_requests_remaining (res) {
@@ -78,12 +110,4 @@ function summarize_files (files) {
 
 function summarize_gists (gists) {
     return gists.map(filter_gist_data);
-    // return gists.map(gist => {
-    //     return {
-    //         id: gist['id'],
-    //         description: gist['description'],
-    //         created_at: gist['created_at'],
-    //         updated_at: gist['updated_at']
-    //     }
-    // });
 }

@@ -10,7 +10,6 @@
     "foreman": "3.0.0",
     "js-yaml": "3.11.0",
     "jstransformer-markdown-it": "2.1.0",
-    "node-opensource": "2.0.0",
     "pug": "2.0.3",
     "request": "2.87.0",
     "request-promise-native": "1.0.5"
