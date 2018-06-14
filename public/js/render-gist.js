@@ -69,13 +69,128 @@ function render (gist, inst) {
                     });
 
                 let svg = d3.select('svg');
-                let data = alloy.graph(instance);
-                let display = alloy.display(data);
+                let graph = alloy.graph(instance);
+                let display = alloy.display(graph);
                 display.style(style);
                 display(svg);
+
+                signature_atoms(instance);
+                display_projections(svg, instance, graph, style, display);
 
             });
 
     }
 
 }
+
+function signature_atoms (instance) {
+
+    function all_atoms (signature) {
+        const atoms = signature
+            .children()
+            .map(c => all_atoms(c))
+            .reduce((a, b) => a.concat(b), []);
+        return atoms.concat(signature.atoms());
+    }
+
+    const data = [];
+    const signatures = instance.signatures();
+
+    signatures.forEach(function (sig) {
+        const atoms = all_atoms(sig);
+        if (atoms.length > 1) {
+            data.push({
+                signature: sig.label(),
+                atoms: atoms
+            });
+        }
+    });
+
+    return signatures;
+
+}
+
+function display_projections(svg, instance, graph, style, display) {
+
+    const all_sigs_atoms = signature_atoms(instance);
+    console.log(all_sigs_atoms);
+
+}
+
+// function _display_projections (svg, instance, graph, style, display) {
+//
+//     let adder = d3.select('#add-projection');
+//     let projections = d3.select('#projections');
+//
+//     let p = graph.projections().entries().map(function (e) {
+//         return {
+//             atom: e.value,
+//             signature: e.key
+//         }
+//     });
+//
+//     update_projections(p);
+//
+//     function update_projections (data) {
+//
+//         let selection = projections
+//             .selectAll('div.projection')
+//             .data(data);
+//
+//         selection
+//             .exit()
+//             .remove();
+//
+//         selection
+//             .enter()
+//             .append('div')
+//             .attr('class', 'projection')
+//             .merge(selection)
+//             .each(function (d) {
+//
+//                 let sig = d3.select(this)
+//                     .selectAll('div.projection-signature')
+//                     .data([d]);
+//
+//                 sig
+//                     .exit()
+//                     .remove();
+//
+//                 sig
+//                     .enter()
+//                     .append('div')
+//                     .attr('class', 'projection-signature')
+//                     .merge(sig)
+//                     .text(function (d) { return d.signature; });
+//
+//                 let atm = d3.select(this)
+//                     .selectAll('div.projection-atom')
+//                     .data([d]);
+//
+//                 atm
+//                     .exit()
+//                     .remove();
+//
+//                 atm
+//                     .enter()
+//                     .append('div')
+//                     .attr('class', 'projection-atom')
+//                     .merge(atm)
+//                     .text(function (d) { return d.atom; });
+//
+//                 d3.select(this)
+//                     .append('div')
+//                     .attr('class', 'projection-button right')
+//                     .text('>');
+//
+//                 d3.select(this)
+//                     .append('div')
+//                     .attr('class', 'projection-button left')
+//                     .text('<');
+//
+//             });
+//
+//     }
+//
+//
+// }

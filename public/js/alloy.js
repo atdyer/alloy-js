@@ -293,33 +293,6 @@ function instance (doc) {
 
 }
 
-function tuple$1 (atoms, field) {
-
-    const _tuple = {};
-
-    const _atoms = atoms,
-        _field = field;
-
-    _tuple.arity = function () {
-        return _atoms.length;
-    };
-
-    _tuple.atoms = function () {
-        return _atoms;
-    };
-
-    _tuple.field = function () {
-        return _field;
-    };
-
-    _tuple.id = function () {
-        return _tuple.field().label() + '[' + _tuple.atoms().map(a => a.label()) + ']';
-    };
-
-    return _tuple;
-
-}
-
 function graph (inst) {
 
     const atom_list = signatures_to_atoms(inst);
@@ -344,6 +317,10 @@ function graph (inst) {
         projections.clear();
         needs_reproject = true;
         return _graph;
+    };
+
+    _graph.projections = function () {
+        return projections;
     };
 
     _graph.remove_projection = function (sig) {
@@ -374,10 +351,10 @@ function graph (inst) {
         });
 
         // Clear any previous projections
-        projected_tuples.forEach(function (tuple) {
-            tuple.projection = tuple.atoms;
-            tuple.source = null;
-            tuple.target = null;
+        projected_tuples.forEach(function (tuple$$1) {
+            tuple$$1.projection = tuple$$1.atoms;
+            tuple$$1.source = null;
+            tuple$$1.target = null;
         });
 
         // Perform projection
@@ -391,10 +368,10 @@ function graph (inst) {
         });
 
         // Set the source and target atoms for each tuple
-        projected_tuples.forEach(function (tuple) {
-            tuple.source = tuple.projection[0];
-            tuple.target = tuple.projection[tuple.projection.length - 1];
-            set_tuple_source_fields(tuple);
+        projected_tuples.forEach(function (tuple$$1) {
+            tuple$$1.source = tuple$$1.projection[0];
+            tuple$$1.target = tuple$$1.projection[tuple$$1.projection.length - 1];
+            set_tuple_source_fields(tuple$$1);
         });
 
         needs_reproject = false;
@@ -414,22 +391,22 @@ function project(sig, atm, atoms, tuples) {
     });
 
     // Remove all tuples that contain an atom in sig unless it is atm
-    let projected_tuples = tuples.filter(function (tuple) {
-        return tuple.atoms.find(function (atom) {
+    let projected_tuples = tuples.filter(function (tuple$$1) {
+        return tuple$$1.atoms.find(function (atom) {
             return atom !== atm && sig_atoms.includes(atom);
         }) === undefined;
     });
 
     // Remove atm from the projection list
-    projected_tuples.forEach(function (tuple) {
-        tuple.projection = tuple.projection.filter(function (atom) {
+    projected_tuples.forEach(function (tuple$$1) {
+        tuple$$1.projection = tuple$$1.projection.filter(function (atom) {
             return atom !== atm;
         });
     });
 
     // Remove tuples that have no atoms in their projection
-    projected_tuples = projected_tuples.filter(function (tuple) {
-        return tuple.projection.length !== 0;
+    projected_tuples = projected_tuples.filter(function (tuple$$1) {
+        return tuple$$1.projection.length !== 0;
     });
 
     // Remove all atoms in sig
@@ -456,11 +433,11 @@ function atom_to_object (atom) {
 }
 
 function tuple_to_object (atoms) {
-    return function (tuple) {
+    return function (tuple$$1) {
         return {
-            atoms: tuple.atoms().map(atom => atoms.find(a => a.id === atom.label())),
-            field: tuple.field().label(),
-            id: tuple.id(),
+            atoms: tuple$$1.atoms().map(atom => atoms.find(a => a.id === atom.label())),
+            field: tuple$$1.field().label(),
+            id: tuple$$1.id(),
             type: 'tuple'
         }
     }
@@ -496,7 +473,7 @@ function fields_to_tuples (inst, atoms) {
         const atoms = tup.atoms().map(function (atm) {
             return atom_map.get(atm.label());
         });
-        return tuple$1(atoms, tup.field());
+        return tuple(atoms, tup.field());
     })
 }
 
@@ -519,19 +496,19 @@ function print_atom_object (d) {
         : '    none';
 }
 
-function set_tuple_source_fields (tuple) {
-    const fields = tuple.source.fields[tuple.field];
+function set_tuple_source_fields (tuple$$1) {
+    const fields = tuple$$1.source.fields[tuple$$1.field];
     if (Array.isArray(fields)) {
         if (Array.isArray(fields[0])) {
-            fields.push(tuple.projection.slice(1));
+            fields.push(tuple$$1.projection.slice(1));
         } else {
-            tuple.source.fields[tuple.field] = [
+            tuple$$1.source.fields[tuple$$1.field] = [
                 fields,
-                tuple.projection.slice(1)
+                tuple$$1.projection.slice(1)
             ];
         }
     } else {
-        tuple.source.fields[tuple.field] = tuple.projection.slice(1);
+        tuple$$1.source.fields[tuple$$1.field] = tuple$$1.projection.slice(1);
     }
 }
 
@@ -1407,83 +1384,16 @@ function display (data) {
 
         data.clear_projections();
 
-        if (json && json['projections']) {
+        if (json) {
 
-            d3$1.entries(json['projections']).forEach(function (p) {
-
-                const sig = p.key;
-                const atm = p.value;
-
-                data.set_projection(sig, atm);
-
-            });
-
-        }
-
-        if (json && json['layout']) {
-
-            const config = json['layout'];
-
-            if (config['positions']) {
-
-                const atoms = data.atoms();
-
-                d3$1.entries(config['positions']).forEach(function (p) {
-
-                    const atm = atoms.find(a => a.id === p.key);
-                    const pos = p.value;
-                    if (atm) {
-                        if ('x' in pos) atm.x = build_function(pos['x']);
-                        if ('y' in pos) atm.y = build_function(pos['y']);
-                    }
-
-                });
-
-            }
-
-        }
-
-        if (json && json['groups']) {
-
-            d3$1.entries(json['groups']).forEach(function (g) {
-
-                const gid = g.key;
-                const grp = g.value;
-                const idx = grp.index || 0;
-
-                const shp = build_shape(grp.shape);
-                const dat = build_data(grp.data, data);
-                const lbl = build_label(grp.label, dat);
-
-                groups.push(
-                    group()
-                        .id(gid)
-                        .index(idx)
-                        .data(dat)
-                        .shape(shp)
-                        .label(lbl)
-                        .on('drag.group', reposition)
-                );
-
-            });
-
-            place_anchors(data.tuples());
+            if (json['projections']) apply_projections(json['projections'], data);
+            if (json['layout']) apply_layout(json['layout'], data);
+            groups = build_groups(json['groups'] || default_groups(), data);
 
         } else {
 
             _display.style({
-                groups: {
-                    atoms: {
-                        shape: 'rectangle',
-                        data: 'atoms',
-                        index: 1
-                    },
-                    tuples: {
-                        shape: 'line',
-                        data: 'tuples',
-                        index: 0
-                    }
-                }
+                groups: default_groups()
             });
 
         }
@@ -1492,30 +1402,70 @@ function display (data) {
 
     };
 
-    function reorder (method) {
+    function apply_layout (layout, data) {
 
-        if (method === 'indexing') {
-            groups.sort(function (a, b) {
-                return a.index() - b.index();
-            });
-        }
+        if (layout['positions']) {
 
-        if (method === 'rendering') {
-            groups.sort(function (a, b) {
-                return a.dataType() === 'atom'
-                    ? -1
-                    : b.dataType() === 'atom'
-                        ? 1
-                        : 0;
+            const atoms = data.atoms();
+
+            d3$1.entries(layout['positions']).forEach(function (p) {
+
+                const atm = atoms.find(a => a.id === p.key);
+                const pos = p.value;
+                if (atm) {
+                    if ('x' in pos) atm.x = build_function(pos['x']);
+                    if ('y' in pos) atm.y = build_function(pos['y']);
+                }
+
             });
+
         }
 
     }
 
-    function reposition () {
-        groups.forEach(function (g) {
-            g.reposition();
+    function apply_projections (projections, data) {
+
+        d3$1.entries(projections).forEach(function (p) {
+
+            const sig = p.key;
+            const atm = p.value;
+
+            data.set_projection(sig, atm);
+
         });
+
+    }
+
+    function build_groups (json, data) {
+
+        const groups = [];
+
+        d3$1.entries(json).forEach(function (g) {
+
+            const gid = g.key;
+            const grp = g.value;
+            const idx = grp.index || 0;
+
+            const shp = build_shape(grp.shape);
+            const dat = build_data(grp.data, data);
+            const lbl = build_label(grp.label, dat);
+
+            groups.push(
+                group()
+                    .id(gid)
+                    .index(idx)
+                    .data(dat)
+                    .shape(shp)
+                    .label(lbl)
+                    .on('drag.group', reposition)
+            );
+
+        });
+
+        place_anchors(data.tuples());
+
+        return groups;
+
     }
 
     function layout (svg) {
@@ -1563,8 +1513,34 @@ function display (data) {
 
     }
 
+    function reorder (method) {
 
-    return _display.style();
+        if (method === 'indexing') {
+            groups.sort(function (a, b) {
+                return a.index() - b.index();
+            });
+        }
+
+        if (method === 'rendering') {
+            groups.sort(function (a, b) {
+                return a.dataType() === 'atom'
+                    ? -1
+                    : b.dataType() === 'atom'
+                        ? 1
+                        : 0;
+            });
+        }
+
+    }
+
+    function reposition () {
+        groups.forEach(function (g) {
+            g.reposition();
+        });
+    }
+
+
+    return _display;
 
 }
 
@@ -1689,6 +1665,21 @@ function default_circle () {
         .attr('r', 42)
         .style('fill', '#304148')
         .style('stroke', 'none');
+}
+
+function default_groups () {
+    return {
+        atoms: {
+            shape: 'rectangle',
+            data: 'atoms',
+            index: 1
+        },
+        tuples: {
+            shape: 'line',
+            data: 'tuples',
+            index: 0
+        }
+    };
 }
 
 function default_label (data) {

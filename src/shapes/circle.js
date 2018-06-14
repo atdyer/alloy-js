@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import {find_angle} from "../../old/util/arrow-util";
+import {find_angle} from "../util";
 
 export {circle};
 

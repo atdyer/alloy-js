@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import {find_angle, find_intersection} from "../../old/util/arrow-util";
+import {find_angle, find_intersection} from "../util";
 
 export {rectangle};
 

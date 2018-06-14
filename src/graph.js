@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import {tuple} from "../simple/tuple";
+import {tuple} from "./tuple";
 
 export {graph};
 
@@ -27,6 +27,10 @@ function graph (inst) {
         projections.clear();
         needs_reproject = true;
         return _graph;
+    };
+
+    _graph.projections = function () {
+        return projections;
     };
 
     _graph.remove_projection = function (sig) {

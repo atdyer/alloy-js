@@ -54,83 +54,16 @@ function display (data) {
 
         data.clear_projections();
 
-        if (json && json['projections']) {
+        if (json) {
 
-            d3.entries(json['projections']).forEach(function (p) {
-
-                const sig = p.key;
-                const atm = p.value;
-
-                data.set_projection(sig, atm);
-
-            });
-
-        }
-
-        if (json && json['layout']) {
-
-            const config = json['layout'];
-
-            if (config['positions']) {
-
-                const atoms = data.atoms();
-
-                d3.entries(config['positions']).forEach(function (p) {
-
-                    const atm = atoms.find(a => a.id === p.key);
-                    const pos = p.value;
-                    if (atm) {
-                        if ('x' in pos) atm.x = build_function(pos['x']);
-                        if ('y' in pos) atm.y = build_function(pos['y']);
-                    }
-
-                });
-
-            }
-
-        }
-
-        if (json && json['groups']) {
-
-            d3.entries(json['groups']).forEach(function (g) {
-
-                const gid = g.key;
-                const grp = g.value;
-                const idx = grp.index || 0;
-
-                const shp = build_shape(grp.shape);
-                const dat = build_data(grp.data, data);
-                const lbl = build_label(grp.label, dat);
-
-                groups.push(
-                    group()
-                        .id(gid)
-                        .index(idx)
-                        .data(dat)
-                        .shape(shp)
-                        .label(lbl)
-                        .on('drag.group', reposition)
-                );
-
-            });
-
-            place_anchors(data.tuples());
+            if (json['projections']) apply_projections(json['projections'], data);
+            if (json['layout']) apply_layout(json['layout'], data);
+            groups = build_groups(json['groups'] || default_groups(), data);
 
         } else {
 
             _display.style({
-                groups: {
-                    atoms: {
-                        shape: 'rectangle',
-                        data: 'atoms',
-                        index: 1
-                    },
-                    tuples: {
-                        shape: 'line',
-                        data: 'tuples',
-                        index: 0
-                    }
-                }
+                groups: default_groups()
             });
 
         }
@@ -139,30 +72,70 @@ function display (data) {
 
     };
 
-    function reorder (method) {
+    function apply_layout (layout, data) {
 
-        if (method === 'indexing') {
-            groups.sort(function (a, b) {
-                return a.index() - b.index();
-            });
-        }
+        if (layout['positions']) {
 
-        if (method === 'rendering') {
-            groups.sort(function (a, b) {
-                return a.dataType() === 'atom'
-                    ? -1
-                    : b.dataType() === 'atom'
-                        ? 1
-                        : 0;
+            const atoms = data.atoms();
+
+            d3.entries(layout['positions']).forEach(function (p) {
+
+                const atm = atoms.find(a => a.id === p.key);
+                const pos = p.value;
+                if (atm) {
+                    if ('x' in pos) atm.x = build_function(pos['x']);
+                    if ('y' in pos) atm.y = build_function(pos['y']);
+                }
+
             });
+
         }
 
     }
 
-    function reposition () {
-        groups.forEach(function (g) {
-            g.reposition();
+    function apply_projections (projections, data) {
+
+        d3.entries(projections).forEach(function (p) {
+
+            const sig = p.key;
+            const atm = p.value;
+
+            data.set_projection(sig, atm);
+
         });
+
+    }
+
+    function build_groups (json, data) {
+
+        const groups = [];
+
+        d3.entries(json).forEach(function (g) {
+
+            const gid = g.key;
+            const grp = g.value;
+            const idx = grp.index || 0;
+
+            const shp = build_shape(grp.shape);
+            const dat = build_data(grp.data, data);
+            const lbl = build_label(grp.label, dat);
+
+            groups.push(
+                group()
+                    .id(gid)
+                    .index(idx)
+                    .data(dat)
+                    .shape(shp)
+                    .label(lbl)
+                    .on('drag.group', reposition)
+            );
+
+        });
+
+        place_anchors(data.tuples());
+
+        return groups;
+
     }
 
     function layout (svg) {
@@ -210,8 +183,34 @@ function display (data) {
 
     }
 
+    function reorder (method) {
 
-    return _display.style();
+        if (method === 'indexing') {
+            groups.sort(function (a, b) {
+                return a.index() - b.index();
+            });
+        }
+
+        if (method === 'rendering') {
+            groups.sort(function (a, b) {
+                return a.dataType() === 'atom'
+                    ? -1
+                    : b.dataType() === 'atom'
+                        ? 1
+                        : 0;
+            });
+        }
+
+    }
+
+    function reposition () {
+        groups.forEach(function (g) {
+            g.reposition();
+        });
+    }
+
+
+    return _display;
 
 }
 
@@ -336,6 +335,21 @@ function default_circle () {
         .attr('r', 42)
         .style('fill', '#304148')
         .style('stroke', 'none');
+}
+
+function default_groups () {
+    return {
+        atoms: {
+            shape: 'rectangle',
+            data: 'atoms',
+            index: 1
+        },
+        tuples: {
+            shape: 'line',
+            data: 'tuples',
+            index: 0
+        }
+    };
 }
 
 function default_label (data) {
