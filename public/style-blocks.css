@@ -311,43 +311,65 @@ kbd {
 
 
 .instance-projections {
-    position: relative;
-    min-height: 32px;
 }
 
 .projections {
+
+    position: relative;
+    min-height: 32px;
+
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
 
-    /*background-color: #eee;*/
-
     line-height: 32px;
-    min-height: 32px;
     vertical-align: middle;
     font-family: monospace;
     color: #999;
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .projection {
-    position: relative;
     display: flex;
-    flex-direction: column;
-    padding: 4px 0;
-    margin: 0 24px;
+    min-height: 32px;
+    margin: 4px 4px;
 }
 
-.projection-signature {
-    line-height: 16px;
+.active .signature {
+    color: #636363;
 }
 
-.projection-atom {
+.active .section:hover .signature {
     color: black;
-    line-height: 16px;
+}
+
+.active .atom {
+    color: black;
+}
+
+.inactive .signature {
+    color: #ccc;
+}
+
+.inactive .section:hover .signature {
+    color: black;
+}
+
+.inactive .atom {
+    display: none;
+    color: lightgray;
+}
+
+.inactive .projection-button {
+    display: none;
 }
 
 .projection-button {
-    width: 24px;
+    width: 18px;
     height: 32px;
     display: flex;
     justify-content: center;
@@ -356,34 +378,22 @@ kbd {
 }
 
 .projection-button:hover {
-    color: steelblue;
+    color: #3182bd;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-width: 18px;
     cursor: pointer;
 }
 
-.right {
-    position: absolute;
-    /*background-color: lightsteelblue;*/
-    left: 100%;
+.signature {
+    line-height: 16px;
 }
 
-.left {
-    position: absolute;
-    /*background-color: steelblue;*/
-    right: 100%;
-}
-
-.add-projection {
-    position: absolute;
-    top: 0;
-    right: 100%;
-    width: 24px;
-    height: 24px;
-    padding: 9px 13px;
-    stroke: #ccc;
-    stroke-width: 2px;
-}
-
-.add-projection:hover {
-    stroke: #304148;
-    cursor: pointer;
+.atom {
+    line-height: 16px;
 }

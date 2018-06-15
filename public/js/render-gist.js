@@ -74,8 +74,14 @@ function render (gist, inst) {
                 display.style(style);
                 display(svg);
 
-                signature_atoms(instance);
-                display_projections(svg, instance, graph, style, display);
+                let all_sig_atoms = signature_atoms(instance);
+                let projections = projection_display(all_sig_atoms);
+                projections.on_change(function (style) {
+                    display.style(style)(svg);
+                    projections(d3.select('#projections'));
+                })
+                    .style(style);
+
 
             });
 
@@ -98,15 +104,15 @@ function signature_atoms (instance) {
 
     signatures.forEach(function (sig) {
         const atoms = all_atoms(sig);
-        if (atoms.length > 1) {
+        if (atoms.length > 1 && sig.label() !== 'univ') {
             data.push({
                 signature: sig.label(),
-                atoms: atoms
+                atoms: atoms.map(a => a.label())
             });
         }
     });
 
-    return signatures;
+    return data;
 
 }
 
