@@ -1,6 +1,7 @@
 let open = d3.select('#open');
 let file = d3.select('#xml-file');
 let svg = d3.select('svg');
+let prj = d3.select('#projections');
 
 open.on('click', function () {
     file.node().click();
@@ -34,7 +35,20 @@ function initialize (doc) {
     let instance = alloy.instance(doc);
     let data = alloy.graph(instance);
     let display = alloy.display(data);
+    let projections = projection_display(signature_atoms(instance));
     let timeout = null;
+
+    projections.on_change(function (style) {
+
+        // Set style text in editor
+        editor.setValue(jsyaml.dump(style));
+
+        apply_yaml();
+
+        // display.style(style)(svg);
+        // projections(prj);
+
+    });
 
     function apply_yaml () {
 
@@ -42,6 +56,9 @@ function initialize (doc) {
         let style = jsyaml.safeLoad(yaml);
         display.style(style);
         display(svg);
+
+        projections.style(style);
+        projections(prj);
 
     }
 
@@ -76,7 +93,6 @@ function initialize_editor () {
     }
 
     return CodeMirror(left.node(), {
-        // value: text,
         mode: 'yaml',
         theme: 'oceanic-next',
         lineNumbers: true,

@@ -3,6 +3,7 @@ html(lang='en')
     head
         title #{gist.description}
         link(rel='stylesheet' href='/style-blocks.css')
+        link(rel='stylesheet' href='/projections.css')
         link(rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github-gist.min.css' integrity='sha256-tAflq+ymku3Khs+I/WcAneIlafYgDiOQ9stIHH985Wo=' crossorigin='anonymous')
         script(src='https://d3js.org/d3.v5.min.js')
         script(src='https://cdnjs.cloudflare.com/ajax/libs/showdown/1.8.6/showdown.js' integrity='sha256-WZhItMKyEJQarLzuYWKmNplzBgqEKvlAedjRsChG3JA=' crossorigin='anonymous')
@@ -49,30 +50,6 @@ html(lang='en')
                 div.gist-instance(style=(dot_alloy['border'] === 'yes' ? 'border: 1px solid #eee' : null))
                     svg.alloy-instance(style=(dot_alloy['height'] ? 'height: ' + dot_alloy['height'] + 'px' : null))
                 div#projections.projections
-                    //div.projection.active
-                    //    a.section(title="Previous atom")
-                    //        div.projection-button <
-                    //    a.section(title="Unproject this/Bool")
-                    //        div.signature this/Bool
-                    //        div.atom True$0
-                    //    a.section(title="Next atom")
-                    //        div.projection-button >
-                    //div.projection.active
-                    //    div.section
-                    //        div.projection-button <
-                    //    div.section
-                    //        div.signature this/Bool
-                    //        div.atom True$0
-                    //    div.section
-                    //        div.projection-button >
-                    //div.projection.inactive
-                    //    div.section
-                    //        div.projection-button <
-                    //    a.section(title="Project over this/State")
-                    //        div.signature this/State
-                    //        div.atom State$0
-                    //    div.section
-                    //        div.projection-button >
 
             //- If there's a README file, include it next
             if gist.files['README.md']

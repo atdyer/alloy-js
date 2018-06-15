@@ -145,6 +145,12 @@ function projection_display (data) {
     };
 
 
+    function fire_change_callback () {
+        if (typeof on_change === 'function') {
+            on_change(style);
+        }
+    }
+
     function next (d) {
 
         if (d.projected && style && style['projections'] && style['projections'][d.signature]) {
@@ -154,6 +160,7 @@ function projection_display (data) {
             style['projections'][d.signature] = d.atoms[next_index];
 
             update_from_style(style);
+            fire_change_callback();
 
         }
 
@@ -168,6 +175,7 @@ function projection_display (data) {
             style['projections'][d.signature] = d.atoms[prev_index];
 
             update_from_style(style);
+            fire_change_callback();
 
         }
 
@@ -200,6 +208,7 @@ function projection_display (data) {
         }
 
         update_from_style(style);
+        fire_change_callback();
 
     }
 
@@ -240,17 +249,38 @@ function projection_display (data) {
 
         }
 
-        if (typeof on_change === 'function') {
-
-            on_change(style);
-
-        }
-
         return _projection_display;
 
     }
 
 
     return _projection_display;
+
+}
+
+function signature_atoms (instance) {
+
+    function all_atoms (signature) {
+        const atoms = signature
+            .children()
+            .map(c => all_atoms(c))
+            .reduce((a, b) => a.concat(b), []);
+        return atoms.concat(signature.atoms());
+    }
+
+    const data = [];
+    const signatures = instance.signatures();
+
+    signatures.forEach(function (sig) {
+        const atoms = all_atoms(sig);
+        if (atoms.length > 1 && sig.label() !== 'univ') {
+            data.push({
+                signature: sig.label(),
+                atoms: atoms.map(a => a.label())
+            });
+        }
+    });
+
+    return data;
 
 }

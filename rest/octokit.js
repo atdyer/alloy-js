@@ -84,7 +84,7 @@ function find_license (license) {
     return new Promise((res) => {
         res(licenses.find(l => l.key === license) || {
             name: license,
-            html_url: 'https://opensource.org/licenses'
+            html_url: 'https://opensource.org/licenses/alphabetical'
         });
     });
 }
