@@ -21,6 +21,7 @@ Customize the appearance of your Alloy Instance page by adding a `.alloy` YAML c
 * `height` - the SVG height in pixels; defaults to 500
 * `border` - yes if the SVG should have a border; defaults to no
 * `show-model` - no if the model code should be hidden; defaults to yes
+* `show-projections` - no if the projections picker should be hidden; defaults to yes
 * `show-style` - no if the instance style should be hidden; defaults to yes
 * `instance` - the XML file in the gist to visualize; defaults to `instance.xml`
 

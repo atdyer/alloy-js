@@ -6,133 +6,137 @@ function projection_display (data) {
 
     function _projection_display (div) {
 
-        div.classed('projections', true);
+        if (div) {
 
-        let selection = div
-            .selectAll('div.projection')
-            .data(all_sig_atoms);
+            div.classed('projections', true);
 
-        selection
-            .exit()
-            .remove();
+            let selection = div
+                .selectAll('div.projection')
+                .data(all_sig_atoms);
 
-        selection = selection
-            .enter()
-            .append('div')
-            .merge(selection)
-            .classed('projection', true)
-            .classed('active', function (d) { return d.projected; })
-            .classed('inactive', function (d) { return !d.projected; });
-
-        selection.each(function (signature) {
-
-            const data = [signature, signature, signature];
-
-            let sections = d3.select(this)
-                .selectAll('a')
-                .data(data);
-
-            sections
+            selection
                 .exit()
                 .remove();
 
-            sections = sections
+            selection = selection
                 .enter()
-                .append('a')
-                .merge(sections)
-                .classed('section', true)
-                .attr('title', function (d, i) {
-                    return i === 0
-                        ? 'Previous atom'
-                        : i === 1
-                            ? (d.projected ? 'Unproject ' : 'Project over ') + d.signature
-                            : i === 2
-                                ? 'Next atom'
-                                : null;
-                });
+                .append('div')
+                .merge(selection)
+                .classed('projection', true)
+                .classed('active', function (d) { return d.projected; })
+                .classed('inactive', function (d) { return !d.projected; });
 
-            sections.each(function (signature, index) {
+            selection.each(function (signature) {
 
-                if (index === 0) {
+                const data = [signature, signature, signature];
 
-                    const left = d3.select(this)
-                        .selectAll('div')
-                        .data([signature]);
+                let sections = d3.select(this)
+                    .selectAll('a')
+                    .data(data);
 
-                    left
-                        .exit()
-                        .remove();
+                sections
+                    .exit()
+                    .remove();
 
-                    left
-                        .enter()
-                        .append('div')
-                        .merge(left)
-                        .classed('projection-button', true)
-                        .text('<')
-                        .on('click', previous);
-
-                }
-
-                if (index === 1) {
-
-                    const middle = d3.select(this)
-                        .on('click', toggle)
-                        .selectAll('div')
-                        .data([signature, signature]);
-
-                    middle
-                        .exit()
-                        .remove();
-
-                    middle
-                        .enter()
-                        .append('div')
-                        .merge(middle)
-                        .each(function (d, i) {
-
-                        if (i === 0) {
-
-                            d3.select(this)
-                                .classed('signature', true)
-                                .text(d.signature);
-
-                        }
-
-                        if (i === 1) {
-
-                            d3.select(this)
-                                .classed('atom', true)
-                                .text(d.projected ? d.current : null);
-
-                        }
-
+                sections = sections
+                    .enter()
+                    .append('a')
+                    .merge(sections)
+                    .classed('section', true)
+                    .attr('title', function (d, i) {
+                        return i === 0
+                            ? 'Previous atom'
+                            : i === 1
+                                ? (d.projected ? 'Unproject ' : 'Project over ') + d.signature
+                                : i === 2
+                                    ? 'Next atom'
+                                    : null;
                     });
 
-                }
+                sections.each(function (signature, index) {
 
-                if (index === 2) {
+                    if (index === 0) {
 
-                    const right = d3.select(this)
-                        .selectAll('div')
-                        .data([signature]);
+                        const left = d3.select(this)
+                            .selectAll('div')
+                            .data([signature]);
 
-                    right
-                        .exit()
-                        .remove();
+                        left
+                            .exit()
+                            .remove();
 
-                    right
-                        .enter()
-                        .append('div')
-                        .merge(right)
-                        .classed('projection-button', true)
-                        .text('>')
-                        .on('click', next);
+                        left
+                            .enter()
+                            .append('div')
+                            .merge(left)
+                            .classed('projection-button', true)
+                            .text('<')
+                            .on('click', previous);
 
-                }
+                    }
 
-            })
+                    if (index === 1) {
 
-        });
+                        const middle = d3.select(this)
+                            .on('click', toggle)
+                            .selectAll('div')
+                            .data([signature, signature]);
+
+                        middle
+                            .exit()
+                            .remove();
+
+                        middle
+                            .enter()
+                            .append('div')
+                            .merge(middle)
+                            .each(function (d, i) {
+
+                            if (i === 0) {
+
+                                d3.select(this)
+                                    .classed('signature', true)
+                                    .text(d.signature);
+
+                            }
+
+                            if (i === 1) {
+
+                                d3.select(this)
+                                    .classed('atom', true)
+                                    .text(d.projected ? d.current : null);
+
+                            }
+
+                        });
+
+                    }
+
+                    if (index === 2) {
+
+                        const right = d3.select(this)
+                            .selectAll('div')
+                            .data([signature]);
+
+                        right
+                            .exit()
+                            .remove();
+
+                        right
+                            .enter()
+                            .append('div')
+                            .merge(right)
+                            .classed('projection-button', true)
+                            .text('>')
+                            .on('click', next);
+
+                    }
+
+                })
+
+            });
+
+        }
 
     }
 

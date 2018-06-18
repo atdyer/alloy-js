@@ -49,7 +49,8 @@ html(lang='en')
             if instance
                 div.gist-instance(style=(dot_alloy['border'] === 'yes' ? 'border: 1px solid #eee' : null))
                     svg.alloy-instance(style=(dot_alloy['height'] ? 'height: ' + dot_alloy['height'] + 'px' : null))
-                div#projections.projections
+                if !(dot_alloy['show-projections'] === 'no')
+                    div#projections.projections
 
             //- If there's a README file, include it next
             if gist.files['README.md']
