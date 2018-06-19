@@ -5,10 +5,9 @@ import {line} from './shapes/line';
 import {rectangle} from './shapes/rectangle';
 import {label} from './label';
 import {place_anchors} from "./anchor";
-import {atom_is_sig} from "./filters/atom";
-import {tuple_is_field} from "./filters/tuple";
 import {curve_bundle_left, curve_bundle_right} from "./arcs/bundle";
 import {arc_straight} from "./arcs";
+import {atom_is_sig, is_sig_or_field, tuple_is_field} from "./filters";
 
 export {display};
 
@@ -254,13 +253,19 @@ function build_data (d, data) {
 
     if (d && data) {
 
-        if (typeof d === 'string') d = { source: d };
+        if (typeof d === 'string')
+            d = {
+                source: d,
+                filter: d === 'atoms' || d === 'tuples'
+                    ? null
+                    : { type: d }
+            };
         const unfiltered_data =
             d.source === 'atoms'
                 ? data.atoms()
                 : d.source === 'tuples'
                     ? data.tuples()
-                    : [];
+                    : data.atoms().concat(data.tuples());
         return d.filter
             ? unfiltered_data.filter(build_filter(d.filter))
             : unfiltered_data;
@@ -273,10 +278,17 @@ function build_data (d, data) {
 
 function build_filter (f) {
     if (f) {
-        if (f['signature'])
-            return atom_is_sig(f['signature']);
-        if (f['field'])
-            return tuple_is_field(f['field']);
+
+        if (typeof f === 'object') {
+
+            if (f['signature'])
+                return atom_is_sig(f['signature']);
+            if (f['field'])
+                return tuple_is_field(f['field']);
+            if (f['type'])
+                return is_sig_or_field(f['type']);
+
+        }
     }
     return function () { return true; };
 }

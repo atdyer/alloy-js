@@ -1270,18 +1270,6 @@ function calculate_anchor (index, count) {
     return 0.15 + 0.7 * (index + 1) * (1 / (count+1));
 }
 
-function atom_is_sig (sig) {
-    return function (atom) {
-        return atom.signatures.includes(sig);
-    };
-}
-
-function tuple_is_field (fld) {
-    return function (tup) {
-        return tup.field === fld;
-    }
-}
-
 function curve_bundle_right (beta) {
 
     const bundle = d3$1.line().curve(d3$1.curveBundle.beta(beta));
@@ -1340,6 +1328,28 @@ function curve_bundle_left (beta) {
 
     }
 
+}
+
+function atom_is_sig (sig) {
+    return function (atom) {
+        return atom.signatures.includes(sig);
+    };
+}
+
+function is_sig_or_field (sig_or_field) {
+    return function (item) {
+        return item.type === 'atom'
+            ? item.signatures.includes(sig_or_field)
+            : item.type === 'tuple'
+                ? item.field === sig_or_field
+                : false;
+    }
+}
+
+function tuple_is_field (fld) {
+    return function (tup) {
+        return tup.field === fld;
+    }
 }
 
 function display (data) {
@@ -1584,13 +1594,19 @@ function build_data (d, data) {
 
     if (d && data) {
 
-        if (typeof d === 'string') d = { source: d };
+        if (typeof d === 'string')
+            d = {
+                source: d,
+                filter: d === 'atoms' || d === 'tuples'
+                    ? null
+                    : { type: d }
+            };
         const unfiltered_data =
             d.source === 'atoms'
                 ? data.atoms()
                 : d.source === 'tuples'
                     ? data.tuples()
-                    : [];
+                    : data.atoms().concat(data.tuples());
         return d.filter
             ? unfiltered_data.filter(build_filter(d.filter))
             : unfiltered_data;
@@ -1603,10 +1619,17 @@ function build_data (d, data) {
 
 function build_filter (f) {
     if (f) {
-        if (f['signature'])
-            return atom_is_sig(f['signature']);
-        if (f['field'])
-            return tuple_is_field(f['field']);
+
+        if (typeof f === 'object') {
+
+            if (f['signature'])
+                return atom_is_sig(f['signature']);
+            if (f['field'])
+                return tuple_is_field(f['field']);
+            if (f['type'])
+                return is_sig_or_field(f['type']);
+
+        }
     }
     return function () { return true; };
 }

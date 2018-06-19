@@ -80,7 +80,7 @@ function initialize (doc) {
 
 function initialize_editor () {
 
-    let left = d3.select('#left')
+    let left = d3.select('#editor')
         .style('font-size', '16px');
 
     function betterTab(cm) {
