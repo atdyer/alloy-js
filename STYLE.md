@@ -22,19 +22,22 @@ The groups section of the `instance.yaml` file defines how the instance data is 
  
 <aside>The labels are used as ids for actual SVG groups, which can be useful for debugging purposes. Right-click on the instance visualization and click 'Inspect Element' (or similar, depending on your browser).</aside>
  
-Each group is defined by a label mapping to a set values. In the default style shown above, `edges` and `nodes` are the labels given to each of the two groups. The label names are completely arbitrary; feel free to name them as you please, although they must be unique.
+Each group is defined by a label that maps to a set of values. In the default style shown above, `edges` and `nodes` are the labels given to each of the two groups. The label names are completely arbitrary; feel free to name them as you please, although they must be unique.
  
 Because groups are used to map data to shapes, each group must have, at a minimum, the `shape` and `data` keys. The `index` is used to determine rendering order; lower values are rendered before higher values. If you were to change the index of `edges` to 2, for example, you'd see the `edges` lines rendered on top of the `nodes` rectangles.
  
 The following is an in-depth description of all valid keys within a group. Note that invalid keys are simply ignored.
  
-<a name="group-data" href="#group-data">#</a> **`data`:** _string_ | _mapping_
+<a name="group-data" href="#group-data">#</a> **`data`:** _string_ | _sequence_ | _mapping_
  
-A string or mapping describing the data used in the group. The following strings are valid:
+A string, sequence, or mapping describing the data used in the group. The following _strings_ are valid:
+
 * `atoms` - The set of all atoms in the instance
 * `tuples` - The set of all tuples in the instance
 * Any signature name from the Alloy model
 * Any relation name from the Alloy model
+
+A _sequence_ can be any combination of these valid _strings_.
 
 > **A word of warning**: the default `instance.yaml` displays all atoms and tuples for a reason. When building a visualization from the ground up, it is practically guaranteed that you will unintentionally forget to include an atom or relation in all but the most simple instances. This can lead to an incomplete graphical representation of the instance, and thus an incorrect understanding of the underlying model. Therefore, it is recommended that you begin building a visualization with all atoms and tuples displayed, gradually filtering items down in to more specific and specialized groupings and stylings.
 
@@ -42,32 +45,50 @@ If `data` is a mapping, the following must be provided:
 
 <div class='subsection'>
 
-<a name="group-data-source" href="#group-data-source">#</a> **`source`:** _string_
+<a name="group-data-source" href="#group-data-source">#</a> **`source`:** _string_ | _sequence_
 
-A string describing the data used in the group. Any valid string for the [data](#group-data) field is valid here.
+A string or sequence describing the data used in the group. Any string or sequence that is valid for the [data](#group-data) field is valid here.
 
-<a name="group-data-filter" href="#group-data-filter">#</a> **`filter`:** _mapping_ | [_function_](#functions)
+<a name="group-data-filters" href="#group-data-filters">#</a> **`filters`:** _sequence_
 
-(Optional) If a filter is provided, the data from [source](#group-data-source) is filtered using each filter in the mapping or by using the function provided. If `filter` is a mapping, the following are valid:
+(Optional) If filters are provided, the data from [source](#group-data-source) is filtered using each filter in the _sequence_. Filters are applied in the order in which they appear in _sequence_, each receiving as input the output of the previous filter. The following items are valid entries in the _sequence_:
 
 <div class='subsection'>
+
+<a name='group-data-filter-atom' href='#group-data-filter-atom'>#</a> **`atom:`** _string_ | _sequence_
+
+Only include the atom _string_ or atoms that are members of _sequence_. Each member of _sequence_ must be a _string_.
 
 <a name='group-data-filter-field' href='#group-data-filter-field'>#</a> **`field:`** _string_ | _sequence_
 
 Only include tuples that are a member of the field _string_. If a _sequence_ is used, it must consist of only strings. Only tuples that are a member of any field specified in the _sequence_ will be included.
 
+<a name='group-data-filter-function' href='#group-data-filter-function'>#</a> **`function:`** [_function_](#functions)
+
+Only include data for which _function_ evaluates to `true`. The _function_ must take a single item as an argument and must return `true` to keep the item, `false` otherwise. The _function_ is used as the callback for [`Array.filter()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter) on the current list of items (i.e. the output of the previous filter, or the data from [source](#group-data-source) if it is the first filter).
+
 <a name='group-data-filter-signature' href='#group-data-filter-signature'>#</a> **`signature:`** _string_ | _sequence_
 
-Only include atoms that are a member of the signature _string_. If a _sequence_ is used, it must consist of only string. Only atoms that are a member of any signature specified in the _sequence_ will be included.
+Only include atoms that are a member of the signature _string_. If a _sequence_ is used, it must consist of only strings. Only atoms that are a member of any signature specified in the _sequence_ will be included.
+
+<a name='group-data-filter-tuple' href='#group-data-filter-tuple'>#</a> **`tuple:`** _string_ | _sequence_
+
+Only include the tuple _string_ or tuples that are members of _sequence_. Each member of _sequence_ must be a _string_. Tuples are identified by the field name followed by each atom that comprises the tuple in a comma separated list surrounded by square brackets. For example: 
+
+<div class='subsection'>
+
+`near[State$0,Chicken$0]`
 
 </div>
 
-If `filter` is a [function](#functions), it will be passed two arguments, the list of atoms in the instance and the list of tuples in the instance. A list of objects should be returned.
+</div>
 
 </div>
 
 <a name="group-index" href="#group-index">#</a> **`index`:** _number_
 
 A numeric value indicating rendering order relative to all other groups. Default is 0.
+
+<a name='group-shape' href='#group-shape'>#</a> **`shape:`** _string_ | _mapping_
 
 ## <a name='functions' class='anchor' href='#functions'>#</a>Functions

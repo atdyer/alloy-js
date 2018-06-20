@@ -1330,26 +1330,39 @@ function curve_bundle_left (beta) {
 
 }
 
-function atom_is_sig (sig) {
-    return function (atom) {
-        return atom.signatures.includes(sig);
+function is_signature (sig) {
+    if (!Array.isArray(sig)) sig = [sig];
+    return function (item) {
+        return item.type === 'atom' && sig.some(s => item.signatures.includes(s));
     };
 }
 
-function is_sig_or_field (sig_or_field) {
+function is_atom (atom) {
+    if (!Array.isArray(atom)) atom = [atom];
     return function (item) {
-        return item.type === 'atom'
-            ? item.signatures.includes(sig_or_field)
-            : item.type === 'tuple'
-                ? item.field === sig_or_field
-                : false;
+        return item.type === 'atom' && atom.some(a => a === '*' || a === item.id);
+    };
+}
+
+function is_signature_or_field (sig_or_field) {
+    if (!Array.isArray(sig_or_field)) sig_or_field = [sig_or_field];
+    return function (item) {
+        return is_signature(sig_or_field)(item) || is_field(sig_or_field)(item);
     }
 }
 
-function tuple_is_field (fld) {
-    return function (tup) {
-        return tup.field === fld;
-    }
+function is_tuple (tuple) {
+    if (!Array.isArray(tuple)) tuple = [tuple];
+    return function (item) {
+        return item.type === 'tuple' && tuple.some(t => t === '*' || t === item.id);
+    };
+}
+
+function is_field (fld) {
+    if (!Array.isArray(fld)) fld = [fld];
+    return function (item) {
+        return item.type === 'tuple' && fld.includes(item.field);
+    };
 }
 
 function display (data) {
@@ -1594,22 +1607,30 @@ function build_data (d, data) {
 
     if (d && data) {
 
-        if (typeof d === 'string')
-            d = {
-                source: d,
-                filter: d === 'atoms' || d === 'tuples'
-                    ? null
-                    : { type: d }
-            };
-        const unfiltered_data =
-            d.source === 'atoms'
-                ? data.atoms()
-                : d.source === 'tuples'
-                    ? data.tuples()
-                    : data.atoms().concat(data.tuples());
-        return d.filter
-            ? unfiltered_data.filter(build_filter(d.filter))
-            : unfiltered_data;
+        if (typeof d === 'string' || Array.isArray(d))
+            d = { source: d };
+
+        if (!d.filters)
+            d.filters = [];
+
+        function source_to_filter (source) {
+            return source === 'atoms'
+                ? {atom: '*'}
+                : source === 'tuples'
+                    ? {tuple: '*'}
+                    : {type: source};
+        }
+
+        if (typeof d.source === 'string') d.filters.unshift(source_to_filter(d.source));
+        else if (Array.isArray(d.source)) d.source.forEach(s => {
+            d.filters.unshift(source_to_filter(s));
+        });
+
+        let all_data = data.atoms().concat(data.tuples());
+        d.filters.forEach(function (filter) {
+            all_data = all_data.filter(build_filter(filter));
+        });
+        return all_data;
 
     }
 
@@ -1623,11 +1644,18 @@ function build_filter (f) {
         if (typeof f === 'object') {
 
             if (f['signature'])
-                return atom_is_sig(f['signature']);
+                return is_signature(f['signature']);
+            if (f['atom'])
+                return is_atom(f['atom']);
             if (f['field'])
-                return tuple_is_field(f['field']);
+                return is_field(f['field']);
+            if (f['tuple'])
+                return is_tuple(f['tuple']);
             if (f['type'])
-                return is_sig_or_field(f['type']);
+                return is_signature_or_field(f['type']);
+            if (f['function']) {
+                return build_function(f['function']);
+            }
 
         }
     }

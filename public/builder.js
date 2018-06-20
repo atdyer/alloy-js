@@ -40,13 +40,8 @@ function initialize (doc) {
 
     projections.on_change(function (style) {
 
-        // Set style text in editor
-        editor.setValue(jsyaml.dump(style));
-
+        replace_projections_text(style);
         apply_yaml();
-
-        // display.style(style)(svg);
-        // projections(prj);
 
     });
 
@@ -59,6 +54,45 @@ function initialize (doc) {
 
         projections.style(style);
         projections(prj);
+
+    }
+
+    function replace_projections_text (style) {
+
+        // Find projections section, if one exists, otherwise end of text
+        let line_start = 0;
+        let line_end = 0;
+        let found_start = false;
+        let found_end = false;
+        editor.eachLine(function (line) {
+            if (line.text.trimLeft() === line.text && found_start && !found_end) {
+                line_end = line.lineNo();
+                found_end = true;
+            }
+            if (line.text === 'projections:') {
+                line_start = line.lineNo();
+                found_start = true;
+                found_end = false;
+            }
+        });
+
+        // Make sure there is a blank line at the end of the document
+        const last_line_index = editor.lastLine();
+        const last_line_text = editor.getLine(last_line_index);
+        if (last_line_text.trim().length)
+            editor.replaceRange('\n', {line: last_line_index, ch: last_line_text.length});
+        if (!found_start)
+            line_start = editor.lineCount();
+        if (!found_end)
+            line_end = editor.lineCount();
+
+        // Generate yaml of projections only
+        let proj_text = 'projections' in style
+            ? jsyaml.dump({ projections: style['projections'] })
+            : '';
+
+        // Set projections in editor
+        editor.replaceRange(proj_text, {line: line_start, ch: 0}, {line: line_end, ch: 0});
 
     }
 
