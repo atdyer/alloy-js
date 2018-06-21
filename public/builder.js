@@ -36,6 +36,8 @@ function initialize (doc) {
     let data = alloy.graph(instance);
     let display = alloy.display(data);
     let projections = projection_display(signature_atoms(instance));
+
+    let error;
     let timeout = null;
 
     projections.on_change(function (style) {
@@ -48,13 +50,23 @@ function initialize (doc) {
     function apply_yaml () {
 
         let yaml = editor.getValue();
-        let style = jsyaml.safeLoad(yaml);
-        display.style(style);
-        display(svg);
+        let style = yaml_to_style(yaml);
 
-        projections.style(style);
-        projections(prj);
+        if (style) {
 
+            display.style(style);
+            display(svg);
+
+            projections.style(style);
+            projections(prj);
+
+        }
+
+    }
+
+    function maybe_apply_yaml () {
+        clearTimeout(timeout);
+        timeout = setTimeout(apply_yaml, 750);
     }
 
     function replace_projections_text (style) {
@@ -96,9 +108,32 @@ function initialize (doc) {
 
     }
 
-    function maybe_apply_yaml () {
-        clearTimeout(timeout);
-        timeout = setTimeout(apply_yaml, 750);
+    function yaml_to_style (yaml) {
+
+        if (error) {
+            error.clear();
+            error = null;
+        }
+
+        try {
+            return jsyaml.safeLoad(yaml);
+        }
+        catch (exception) {
+
+            if (exception.name === 'YAMLException') {
+                let l = exception.mark.line;
+                let c = exception.mark.column;
+                let line = editor.getLine(l);
+                let s = c === line.length ? 0 : c;
+                let e = c === line.length ? line.length : c + 1;
+                error = editor.markText(
+                    {line: l, ch: s},
+                    {line: l, ch: e},
+                    {className: 'cm-error'}
+                );
+            }
+        }
+
     }
 
     d3.text('defaults/instance.yaml')

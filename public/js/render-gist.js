@@ -70,9 +70,11 @@ function render (gist, inst) {
 
                 let svg = d3.select('svg');
                 let prj = d3.select('#projections');
-                let graph = alloy.graph(instance);
-                let display = alloy.display(graph);
-                display.style(style);
+                let graph = alloy
+                    .graph(instance);
+                let display = alloy
+                    .display(graph)
+                    .style(style);
 
                 let all_sig_atoms = signature_atoms(instance);
                 let projections = projection_display(all_sig_atoms);
@@ -83,7 +85,7 @@ function render (gist, inst) {
                         projections(prj);
                     });
 
-                display(svg);
+                display.style(style)(svg);
                 projections(prj);
 
             });

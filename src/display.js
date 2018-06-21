@@ -14,6 +14,7 @@ export {display};
 function display (data) {
 
     let groups = [];
+    let functions = d3.map();
 
     function _display (svg) {
 
@@ -57,7 +58,8 @@ function display (data) {
 
             if (json['projections']) apply_projections(json['projections'], data);
             if (json['layout']) apply_layout(json['layout'], data);
-            groups = build_groups(json['groups'] || default_groups(), data);
+            if (json['functions']) functions = build_functions(json['functions']);
+            if (json['groups']) groups = build_groups(json['groups'] || default_groups(), data);
 
         } else {
 
@@ -82,8 +84,8 @@ function display (data) {
                 const atm = atoms.find(a => a.id === p.key);
                 const pos = p.value;
                 if (atm) {
-                    if ('x' in pos) atm.x = build_function(pos['x']);
-                    if ('y' in pos) atm.y = build_function(pos['y']);
+                    if ('x' in pos) atm.x = parse_value(pos['x']);
+                    if ('y' in pos) atm.y = parse_value(pos['y']);
                 }
 
             });
@@ -105,6 +107,29 @@ function display (data) {
 
     }
 
+    function build_functions (json) {
+
+        const functions = d3.map();
+
+        d3.entries(json).forEach(function (f) {
+
+            const name = '+' + f.key;
+            const func = build_function(f.value);
+
+            if (!func || func instanceof Error) {
+                console.log('Unable to create function ' + name);
+                console.log(func.message);
+                functions.set(name, () => null);
+            } else {
+                functions.set(name, func);
+            }
+
+        });
+
+        return functions;
+
+    }
+
     function build_groups (json, data) {
 
         const groups = [];
@@ -119,15 +144,19 @@ function display (data) {
             const dat = build_data(grp.data, data);
             const lbl = build_label(grp.label, dat);
 
-            groups.push(
-                group()
+
+            const groop = group()
                     .id(gid)
                     .index(idx)
                     .data(dat)
                     .shape(shp)
                     .label(lbl)
-                    .on('drag.group', reposition)
-            );
+                    .on('drag.group', reposition);
+
+            apply_attrs(groop, grp['attr']);
+            apply_styles(groop, grp['style']);
+
+            groups.push(groop);
 
         });
 
@@ -150,12 +179,12 @@ function display (data) {
         atoms.forEach(function (a) {
             if ('x' in a) {
                 a.fx = typeof a.x === 'function'
-                    ? a.x.call(svg, width)
+                    ? a.x.call(svg, width, height, a)
                     : a.x;
             }
             if ('y' in a) {
                 a.fy = typeof a.y === 'function'
-                    ? a.y.call(svg, height)
+                    ? a.y.call(svg, width, height, a)
                     : a.y;
             }
         });
@@ -209,215 +238,228 @@ function display (data) {
     }
 
 
-    return _display;
-
-}
-
-function apply_attrs (shape, attributes) {
-    d3.entries(attributes).forEach(function (attr) {
-        shape.attr(attr.key, attr.value);
-    });
-}
-
-function apply_styles (shape, styles) {
-    d3.entries(styles).forEach(function (style) {
-        let key = style.key;
-        let value = parse_value(style.value);
-        shape.style(key, value);
-    });
-}
-
-function build_circle (s) {
-    const c = default_circle();
-    apply_attrs(c, s['attribute']);
-    apply_styles(c, s['style']);
-    return c;
-}
-
-function build_curve (c) {
-    if (typeof c === 'string') {
-        c = {type: c};
+    function apply_attrs (shape, attributes) {
+        d3.entries(attributes).forEach(function (attr) {
+            const key = attr.key;
+            const value = parse_value(attr.value);
+            shape.attr(key, value);
+        });
     }
-    if (c.type === 'bundle-right') {
-        let beta = c.beta !== undefined ? c.beta : 0.3;
-        return curve_bundle_right(beta);
+
+    function apply_styles (shape, styles) {
+        d3.entries(styles).forEach(function (style) {
+            const key = style.key;
+            const value = parse_value(style.value);
+            shape.style(key, value);
+        });
     }
-    if (c.type === 'bundle-left') {
-        let beta = c.beta !== undefined ? c.beta : 0.3;
-        return curve_bundle_left(beta);
+
+    function build_circle (s) {
+        const c = default_circle();
+        apply_attrs(c, s['attribute']);
+        apply_styles(c, s['style']);
+        return c;
     }
-    return arc_straight;
-}
 
-function build_data (d, data) {
-
-    if (d && data) {
-
-        if (typeof d === 'string' || Array.isArray(d))
-            d = { source: d };
-
-        if (!d.filters)
-            d.filters = [];
-
-        function source_to_filter (source) {
-            return source === 'atoms'
-                ? {atom: '*'}
-                : source === 'tuples'
-                    ? {tuple: '*'}
-                    : {type: source};
+    function build_curve (c) {
+        if (typeof c === 'string') {
+            c = {type: c};
         }
-
-        if (typeof d.source === 'string') d.filters.unshift(source_to_filter(d.source));
-        else if (Array.isArray(d.source)) d.source.forEach(s => {
-            d.filters.unshift(source_to_filter(s))
-        });
-
-        let all_data = data.atoms().concat(data.tuples());
-        d.filters.forEach(function (filter) {
-            all_data = all_data.filter(build_filter(filter));
-        });
-        return all_data;
-
+        if (c.type === 'bundle-right') {
+            let beta = c.beta !== undefined ? c.beta : 0.3;
+            return curve_bundle_right(beta);
+        }
+        if (c.type === 'bundle-left') {
+            let beta = c.beta !== undefined ? c.beta : 0.3;
+            return curve_bundle_left(beta);
+        }
+        return arc_straight;
     }
 
-    return [];
+    function build_data (d, data) {
 
-}
+        if (d && data) {
 
-function build_filter (f) {
-    if (f) {
+            if (typeof d === 'string' || Array.isArray(d))
+                d = { source: d };
 
-        if (typeof f === 'object') {
+            if (!d.filters)
+                d.filters = [];
 
-            if (f['signature'])
-                return is_signature(f['signature']);
-            if (f['atom'])
-                return is_atom(f['atom']);
-            if (f['field'])
-                return is_field(f['field']);
-            if (f['tuple'])
-                return is_tuple(f['tuple']);
-            if (f['type'])
-                return is_signature_or_field(f['type']);
-            if (f['function']) {
-                return build_function(f['function']);
+            function source_to_filter (source) {
+                return source === 'atoms'
+                    ? {atom: '*'}
+                    : source === 'tuples'
+                        ? {tuple: '*'}
+                        : {type: source};
             }
 
+            if (typeof d.source === 'string') d.filters.unshift(source_to_filter(d.source));
+            else if (Array.isArray(d.source)) d.source.forEach(s => {
+                d.filters.unshift(source_to_filter(s))
+            });
+
+            let all_data = data.atoms().concat(data.tuples());
+            d.filters.forEach(function (filter) {
+                all_data = all_data.filter(build_filter(filter));
+            });
+            return all_data;
+
+        }
+
+        return [];
+
+    }
+
+    function build_filter (f) {
+        if (f) {
+
+            if (typeof f === 'object') {
+
+                if (f['signature'])
+                    return is_signature(f['signature']);
+                if (f['atom'])
+                    return is_atom(f['atom']);
+                if (f['field'])
+                    return is_field(f['field']);
+                if (f['tuple'])
+                    return is_tuple(f['tuple']);
+                if (f['type'])
+                    return is_signature_or_field(f['type']);
+                if (f['function']) {
+                    return build_function(f['function']);
+                }
+
+            }
+        }
+        return function () { return true; };
+    }
+
+    function build_function (code) {
+        try {
+            return typeof code === 'string'
+                ? Function('"use strict"; return ' + code)()
+                : null;
+        }
+        catch (error) {
+            return error;
         }
     }
-    return function () { return true; };
-}
 
-function build_function (code) {
-    return typeof code === 'string'
-        ? Function('"use strict"; return ' + code)()
-        : function () { return code; };
-}
-
-function build_label (l, data) {
-    const lbl = default_label(data);
-    if (l) {
-        apply_attrs(lbl, l['attribute']);
-        apply_styles(lbl, l['style']);
+    function build_label (l, data) {
+        const lbl = default_label(data);
+        if (l) {
+            apply_attrs(lbl, l['attr']);
+            apply_styles(lbl, l['style']);
+        }
+        return lbl;
     }
-    return lbl;
-}
 
-function build_line (s) {
-    const l = default_line();
-    apply_attrs(l, s['attribute']);
-    apply_styles(l, s['style']);
-    if (s['curve']) l.curve(build_curve(s['curve']));
-    return l;
-}
+    function build_line (s) {
+        const l = default_line();
+        apply_attrs(l, s['attr']);
+        apply_styles(l, s['style']);
+        if (s['curve']) l.curve(build_curve(s['curve']));
+        return l;
+    }
 
-function build_rectangle (s) {
-    const r = default_rectangle();
-    apply_attrs(r, s['attribute']);
-    apply_styles(r, s['style']);
-    return r;
-}
+    function build_rectangle (s) {
+        const r = default_rectangle();
+        apply_attrs(r, s['attr']);
+        apply_styles(r, s['style']);
+        return r;
+    }
 
-function build_shape (s) {
+    function build_shape (s) {
 
-    if (s) {
+        if (s) {
 
-        if (typeof s === 'string') s = { type: s };
-        return (
-            s.type === 'circle'
-                ? build_circle(s)
-                : s.type === 'rectangle'
+            if (typeof s === 'string') s = { type: s };
+            return (
+                s.type === 'circle'
+                    ? build_circle(s)
+                    : s.type === 'rectangle'
                     ? build_rectangle(s)
                     : s.type === 'line'
                         ? build_line(s)
                         : null
-        );
+            );
 
-    }
-
-}
-
-function default_circle () {
-    return circle()
-        .attr('r', 42)
-        .style('fill', '#304148')
-        .style('stroke', 'none');
-}
-
-function default_groups () {
-    return {
-        atoms: {
-            shape: 'rectangle',
-            data: 'atoms',
-            index: 1
-        },
-        tuples: {
-            shape: 'line',
-            data: 'tuples',
-            index: 0
         }
-    };
-}
 
-function default_label (data) {
-    const l = label()
-        .attr('text-anchor', 'middle')
-        .attr('dominant-baseline', 'middle')
-        .style('fill', '#f8f8f2')
-        .style('font-family', 'monospace')
-        .style('font-size', function (d, i) { return i ? 14 : 18})
-        .style('font-weight', 'bold')
-        .style('pointer-events', 'none')
-        .style('-webkit-user-select', 'none')
-        .style('-moz-user-select', 'none')
-        .style('-ms-user-select', 'none')
-        .style('user-select', 'none');
-    if (data && data.length && data[0].atoms) {
-        l.style('fill', '#121e25')
-            .style('font-weight', 'lighter')
-            .style('font-size', '10px');
     }
-    return l;
-}
 
-function default_line () {
-    return line()
-        .style('stroke', '#304148')
-        .style('stroke-width', 1);
-}
+    function default_circle () {
+        return circle()
+            .attr('r', 42)
+            .style('fill', '#304148')
+            .style('stroke', 'none');
+    }
 
-function default_rectangle () {
-    return rectangle()
-        .attr('width', 100)
-        .attr('height', 70)
-        .style('fill', '#304148')
-        .style('stroke', 'none');
-}
+    function default_groups () {
+        return {
+            atoms: {
+                shape: 'rectangle',
+                data: 'atoms',
+                index: 1
+            },
+            tuples: {
+                shape: 'line',
+                data: 'tuples',
+                index: 0
+            }
+        };
+    }
 
-function parse_value (v) {
-    return typeof v === 'string'
-        ? (~v.indexOf('function') || ~v.indexOf('=>'))
-            ? build_function(v)
-            : v
-        : v;
+    function default_label (data) {
+        const l = label()
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'middle')
+            .style('fill', '#f8f8f2')
+            .style('font-family', 'monospace')
+            .style('font-size', function (d, i) { return i ? 14 : 18})
+            .style('font-weight', 'bold')
+            .style('pointer-events', 'none')
+            .style('-webkit-user-select', 'none')
+            .style('-moz-user-select', 'none')
+            .style('-ms-user-select', 'none')
+            .style('user-select', 'none');
+        if (data && data.length && data[0].atoms) {
+            l.style('fill', '#121e25')
+                .style('font-weight', 'lighter')
+                .style('font-size', '10px');
+        }
+        return l;
+    }
+
+    function default_line () {
+        return line()
+            .style('stroke', '#304148')
+            .style('stroke-width', 1);
+    }
+
+    function default_rectangle () {
+        return rectangle()
+            .attr('width', 100)
+            .attr('height', 70)
+            .style('fill', '#304148')
+            .style('stroke', 'none');
+    }
+
+    function parse_value (v) {
+        return typeof v === 'string'
+            ? string_contains_function(v)
+                ? build_function(v)
+                : v.startsWith('+')
+                    ? functions.get(v)
+                    : v
+            : v;
+    }
+
+    function string_contains_function (s) {
+        return typeof s === 'string' && (~s.indexOf('function') || ~s.indexOf('=>'));
+    }
+
+    return _display;
+
 }
