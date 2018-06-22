@@ -11,7 +11,7 @@ function circle () {
         styles = d3.map();
 
     attributes
-        .set('r', 80);
+        .set('r', 42);
 
     function _circle (selection) {
 
@@ -107,11 +107,15 @@ function circle () {
 
 
 function cx (d) {
-    return d.x || 0;
+    return typeof d.x === 'function'
+        ? d.x(d)
+        : d.x || 0;
 }
 
 function cy (d) {
-    return d.y || 0;
+    return typeof d.y === 'function'
+        ? d.y(d)
+        : d.y || 0;
 }
 
 function r () {
@@ -120,7 +124,7 @@ function r () {
 
 function anchor (d) {
     d.anchor = {
-        x: d.x,
-        y: d.y
+        x: cx(d),
+        y: cy(d)
     };
 }

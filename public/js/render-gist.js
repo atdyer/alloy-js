@@ -51,6 +51,11 @@ function render (gist, inst) {
                 let instance = alloy.instance(xml);
 
                 let src = instance.sources().entries()[0];
+                let cmd = instance.command();
+
+                d3.select('.alloy-command')
+                    .text(cmd);
+
                 d3.select('.instance-source')
                     .select('h2')
                     .text(src.key)

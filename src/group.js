@@ -5,7 +5,8 @@ export {group};
 function group () {
 
     let data,
-        shape;
+        shape,
+        anchor;
 
     let groups,
         id,
@@ -50,10 +51,13 @@ function group () {
             groups.style(key, value);
         });
 
-
         return groups;
 
     }
+
+    _group.anchor = function (_) {
+        return arguments.length ? (anchor = _, _group) : anchor;
+    };
 
     _group.attr = function (name, value) {
         return arguments.length > 1
@@ -92,6 +96,7 @@ function group () {
     };
 
     _group.reposition = function () {
+        if (anchor) bind_anchors();
         if (shape) shape.reposition();
         _label.reposition();
     };
@@ -114,9 +119,38 @@ function group () {
     return _group;
 
 
+    function bind_anchors () {
+
+        if (groups) {
+
+            groups.each(function (d) {
+
+                const anc = anchor.data().find(function (datum) {
+                    return array_equal(d.projection, datum.projection)
+                });
+
+                if (anc) {
+                    d.x = () => anc.anchor.x;
+                    d.y = () => anc.anchor.y;
+                }
+            });
+
+        }
+
+    }
+
     function dragged (d) {
         d.x = (d.x || 0) + d3.event.dx;
         d.y = (d.y || 0) + d3.event.dy;
     }
 
+}
+
+
+function array_equal (a, b) {
+    return Array.isArray(a) && Array.isArray(b)
+        ? a.length === b.length
+            ? a.every((v, i) => b[i] === v)
+            : false
+        : false;
 }

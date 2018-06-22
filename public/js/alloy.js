@@ -524,7 +524,8 @@ function signatures_to_atoms (inst) {
 function group () {
 
     let data,
-        shape;
+        shape,
+        anchor;
 
     let groups,
         id,
@@ -569,10 +570,13 @@ function group () {
             groups.style(key, value);
         });
 
-
         return groups;
 
     }
+
+    _group.anchor = function (_) {
+        return arguments.length ? (anchor = _, _group) : anchor;
+    };
 
     _group.attr = function (name, value) {
         return arguments.length > 1
@@ -611,6 +615,7 @@ function group () {
     };
 
     _group.reposition = function () {
+        if (anchor) bind_anchors();
         if (shape) shape.reposition();
         _label.reposition();
     };
@@ -633,11 +638,40 @@ function group () {
     return _group;
 
 
+    function bind_anchors () {
+
+        if (groups) {
+
+            groups.each(function (d) {
+
+                const anc = anchor.data().find(function (datum) {
+                    return array_equal(d.projection, datum.projection)
+                });
+
+                if (anc) {
+                    d.x = () => anc.anchor.x;
+                    d.y = () => anc.anchor.y;
+                }
+            });
+
+        }
+
+    }
+
     function dragged (d) {
         d.x = (d.x || 0) + d3.event.dx;
         d.y = (d.y || 0) + d3.event.dy;
     }
 
+}
+
+
+function array_equal (a, b) {
+    return Array.isArray(a) && Array.isArray(b)
+        ? a.length === b.length
+            ? a.every((v, i) => b[i] === v)
+            : false
+        : false;
 }
 
 function find_angle (p1, p2) {
@@ -725,7 +759,7 @@ function circle () {
         styles = d3.map();
 
     attributes
-        .set('r', 80);
+        .set('r', 42);
 
     function _circle (selection) {
 
@@ -821,11 +855,15 @@ function circle () {
 
 
 function cx (d) {
-    return d.x || 0;
+    return typeof d.x === 'function'
+        ? d.x(d)
+        : d.x || 0;
 }
 
 function cy (d) {
-    return d.y || 0;
+    return typeof d.y === 'function'
+        ? d.y(d)
+        : d.y || 0;
 }
 
 function r () {
@@ -834,8 +872,8 @@ function r () {
 
 function anchor (d) {
     d.anchor = {
-        x: d.x,
-        y: d.y
+        x: cx(d),
+        y: cy(d)
     };
 }
 
@@ -1248,7 +1286,7 @@ function dy (d, i, g) {
     return i - 0.5 * (g.length - 1) + 'em';
 }
 
-function place_anchors (tuples) {
+function place_tuple_anchors (tuples) {
 
     const counts = d3.map();
     const indices = d3.map();
@@ -1296,12 +1334,48 @@ function place_anchors (tuples) {
 
 }
 
+function place_group_anchors (groups) {
+
+    const g = d3.map(groups, g => g.id());
+
+    groups.forEach(function (group) {
+        const anchor = g.get(group.anchor());
+        if (anchor) {
+
+            // Set the anchor to be the actual group
+            group.anchor(anchor);
+
+            // Filter the data to only include anchored items
+            const group_data = group.data();
+            const anchor_data = anchor.data();
+
+            group.data(group_data.filter(function (d) {
+
+                return ~anchor_data.findIndex(function (datum) {
+                    return array_equal$1(d.projection, datum.projection);
+                });
+
+            }));
+
+        }
+    });
+
+}
+
 function key_function (tuple) {
     return tuple.source.id + tuple.target.id;
 }
 
 function calculate_anchor (index, count) {
     return 0.15 + 0.7 * (index + 1) * (1 / (count+1));
+}
+
+function array_equal$1 (a, b) {
+    return Array.isArray(a) && Array.isArray(b)
+        ? a.length === b.length
+            ? a.every((v, i) => b[i] === v)
+            : false
+        : false;
 }
 
 function curve_bundle_right (beta) {
@@ -1447,7 +1521,7 @@ function display (data) {
             if (json['projections']) apply_projections(json['projections'], data);
             if (json['layout']) apply_layout(json['layout'], data);
             if (json['functions']) functions = build_functions(json['functions']);
-            if (json['groups']) groups = build_groups(json['groups'] || default_groups(), data);
+            groups = build_groups(json['groups'] || default_groups(), data);
 
         } else {
 
@@ -1532,14 +1606,14 @@ function display (data) {
             const dat = build_data(grp.data, data);
             const lbl = build_label(grp.label, dat);
 
-
             const groop = group()
-                    .id(gid)
-                    .index(idx)
-                    .data(dat)
-                    .shape(shp)
-                    .label(lbl)
-                    .on('drag.group', reposition);
+                .id(gid)
+                .index(idx)
+                .data(dat)
+                .shape(shp)
+                .label(lbl)
+                .anchor(grp.anchor)
+                .on('drag.group', reposition);
 
             apply_attrs(groop, grp['attr']);
             apply_styles(groop, grp['style']);
@@ -1548,7 +1622,8 @@ function display (data) {
 
         });
 
-        place_anchors(data.tuples());
+        place_tuple_anchors(data.tuples());
+        place_group_anchors(groups);
 
         return groups;
 
@@ -1567,12 +1642,12 @@ function display (data) {
         atoms.forEach(function (a) {
             if ('x' in a) {
                 a.fx = typeof a.x === 'function'
-                    ? a.x.call(svg, width, height, a)
+                    ? a.x.call(svg.node(), width, height, a)
                     : a.x;
             }
             if ('y' in a) {
                 a.fy = typeof a.y === 'function'
-                    ? a.y.call(svg, width, height, a)
+                    ? a.y.call(svg.node(), width, height, a)
                     : a.y;
             }
         });
@@ -1644,7 +1719,7 @@ function display (data) {
 
     function build_circle (s) {
         const c = default_circle();
-        apply_attrs(c, s['attribute']);
+        apply_attrs(c, s['attr']);
         apply_styles(c, s['style']);
         return c;
     }

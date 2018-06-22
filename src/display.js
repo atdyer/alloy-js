@@ -4,7 +4,7 @@ import {circle} from './shapes/circle';
 import {line} from './shapes/line';
 import {rectangle} from './shapes/rectangle';
 import {label} from './label';
-import {place_anchors} from "./anchor";
+import {place_group_anchors, place_tuple_anchors} from "./anchor";
 import {curve_bundle_left, curve_bundle_right} from "./arcs/bundle";
 import {arc_straight} from "./arcs";
 import {is_signature, is_atom, is_signature_or_field, is_tuple, is_field} from "./filters";
@@ -59,7 +59,7 @@ function display (data) {
             if (json['projections']) apply_projections(json['projections'], data);
             if (json['layout']) apply_layout(json['layout'], data);
             if (json['functions']) functions = build_functions(json['functions']);
-            if (json['groups']) groups = build_groups(json['groups'] || default_groups(), data);
+            groups = build_groups(json['groups'] || default_groups(), data);
 
         } else {
 
@@ -144,14 +144,14 @@ function display (data) {
             const dat = build_data(grp.data, data);
             const lbl = build_label(grp.label, dat);
 
-
             const groop = group()
-                    .id(gid)
-                    .index(idx)
-                    .data(dat)
-                    .shape(shp)
-                    .label(lbl)
-                    .on('drag.group', reposition);
+                .id(gid)
+                .index(idx)
+                .data(dat)
+                .shape(shp)
+                .label(lbl)
+                .anchor(grp.anchor)
+                .on('drag.group', reposition);
 
             apply_attrs(groop, grp['attr']);
             apply_styles(groop, grp['style']);
@@ -160,7 +160,8 @@ function display (data) {
 
         });
 
-        place_anchors(data.tuples());
+        place_tuple_anchors(data.tuples());
+        place_group_anchors(groups);
 
         return groups;
 
@@ -179,12 +180,12 @@ function display (data) {
         atoms.forEach(function (a) {
             if ('x' in a) {
                 a.fx = typeof a.x === 'function'
-                    ? a.x.call(svg, width, height, a)
+                    ? a.x.call(svg.node(), width, height, a)
                     : a.x;
             }
             if ('y' in a) {
                 a.fy = typeof a.y === 'function'
-                    ? a.y.call(svg, width, height, a)
+                    ? a.y.call(svg.node(), width, height, a)
                     : a.y;
             }
         });
@@ -256,7 +257,7 @@ function display (data) {
 
     function build_circle (s) {
         const c = default_circle();
-        apply_attrs(c, s['attribute']);
+        apply_attrs(c, s['attr']);
         apply_styles(c, s['style']);
         return c;
     }

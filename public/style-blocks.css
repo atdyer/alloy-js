@@ -288,6 +288,13 @@ iframe {
     font-size: 11px;
 }
 
+.alloy-command {
+    font-family: 'DejaVu Sans Mono', monospace;
+    font-size: 12px;
+    margin: 0.5em 0.2em;
+    color: #555;
+}
+
 .alloy-instance {
     font-family: 'DejaVu Sans Mono', monospace;
     font-size: 15px;

@@ -1,4 +1,4 @@
-The `instance.yaml` file controls how an instance is presented using Alloy Instances. [YAML](https://en.wikipedia.org/wiki/YAML) is a simple, human-readable language that is often used for configuration files. In Alloy Instances, we use it to describe how an instance should be displayed. If you've never used YAML before, do not fret. It is practically self-explanatory, and you should be able to pick it up just by reading through this guide. Alternatively, the [YAML spec](http://yaml.org/spec/1.2/spec.html) is comprehensive should you need a language reference.
+The `instance.yaml` file controls how an instance is presented using Alloy Instances. [YAML](https://en.wikipedia.org/wiki/YAML) is a simple, human-readable language that is often used for configuration files. In Alloy Instances, we use it to describe how an instance should be displayed. If you've never used YAML before, do not fret. It is practically self-explanatory, and only a small subset of the language is needed for Alloy Instances. You should be able to pick it up just by reading through this guide and looking at examples. Alternatively, the [YAML spec](http://yaml.org/spec/1.2/spec.html) is comprehensive should you need a language reference.
 
 Alloy Instance configurations make heavy use of [YAML mappings](http://yaml.org/spec/1.2/spec.html#mapping//), which are essentially just `key: value` pairs. The `value` in a pair can be just about anything... a number, a string, a list, even a set of mappings. Take a look at the following YAML file, which is used as the default style in an Alloy Instance when none is provided.
  
@@ -157,3 +157,32 @@ groups:
 functions:
   redOrGreen: d => d.fields.full ? 'red' : 'green'
 ```
+
+### <a name='layout' class='anchor' href='#layout'>#</a>**`layout:`** _mapping_
+
+The layout section of the `instance.yaml` file is used to control the positioning of visual elements of the instance.
+
+<a name='layout-positions' href='#layout-positions'>#</a> **`positions:`** _mapping_
+
+A mapping that can be used to describe the position of individual atoms. Keys are atom names and values are mappings that consist of an `x` and/or a `y` key, value pair.
+
+<div class='subsection'>
+
+<a name='layout-positions-atom' href='#layout-positions-atom'>#</a> **_`[atom]:`_**
+
+<div class='subsection'>
+
+<a name='layout-positions-atom-x' href='#layout-positions-atom-x'>#</a> **`x:`** _number_ | [_function_](#functions)
+<a name='layout-positions-atom-y' href='#layout-positions-atom-y'>#</a> **`y:`** _number_ | [_function_](#functions)
+
+If a [function](#functions) is used for either `x` or `y`, it will be passed, in order, the width of the SVG in pixels, the height of the SVG in pixels, and the datum associated with `[atom]`, with `this` as the SVG. Functions can be used as a convenient tool for [reflecting state using position](../atdyer/fdee1d777042b60cfa4d1612d659c853).
+
+</div>
+
+</div>
+
+Positions defined in the [positions](#layout-positions) section are applied to atoms before Alloy Instances performs the layout of visual elements.
+
+Atoms that do not have a position defined in the [positions](#layout-positions) section will be assigned a position using a [velocity Verlet numerical integrator](https://github.com/d3/d3-force) for simulating forces on particles. All atoms are part of the simulation, but only those that do not have a position defined will be free to move.
+
+This process is repeated any time a reprojection occurs. Positions defined in the [positions](#layout-positions) section will be reapplied. All others, having been assigned positions during the initial layout, will be held static.
