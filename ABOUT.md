@@ -22,12 +22,12 @@ Customize the appearance of your Alloy Instance page by adding a `.alloy` YAML c
 * `border` - yes if the SVG should have a border; defaults to no
 * `show-model` - no if the model code should be hidden; defaults to yes
 * `show-projections` - no if the projections picker should be hidden; defaults to yes
-* `show-style` - no if the instance style should be hidden; defaults to yes
+* `show-style` - no if the `instance.yaml` style should be hidden; defaults to yes
 * `instance` - the XML file in the gist to visualize; defaults to `instance.xml`
 
 ## Styling
 
-Customize the instance visualization by adding an `instance.yaml` style. A tutorial on styling visualization and description of all options can be found [here](/style). By default, the following style is used:
+Customize the instance visualization by adding an `instance.yaml` style. A tutorial on creating visualizations and a description of all options can be found [here](/style). The [Alloy Instance Builder](/builder) can be used to interactively create the `instance.yaml` file for your model. By default, the following style is used:
 
 ```yaml
 groups:
@@ -51,7 +51,7 @@ Replace the "gist.github.com" with "alloy-js.herokuapp.com" in the URL to view i
 
 <code><a href='https://alloy-js.herokuapp.com/atdyer'>https://alloy-js.herokuapp.com/atdyer</a></code>
 
-Note that the gist description is used as the title of the Alloy Instance in both the user page and the Alloy Instance page.
+All gists that contain a `.alloy` file will be displayed on this page. Note that the gist description is used as the title of the Alloy Instance in both the user page and the Alloy Instance page.
 
 ## Credits
 

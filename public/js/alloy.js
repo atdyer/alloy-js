@@ -1814,6 +1814,7 @@ function display (data) {
         if (l) {
             apply_attrs(lbl, l['attr']);
             apply_styles(lbl, l['style']);
+            if (l === 'none') lbl.style('display', 'none');
         }
         return lbl;
     }
