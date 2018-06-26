@@ -1165,12 +1165,13 @@ function arrow_anchor_fallback (shape) {
     };
 }
 
+const aliases = d3.map();
+
 function label () {
 
     let labels;
 
-    let aliases = d3.map(),
-        attributes = d3.map(),
+    let attributes = d3.map(),
         styles = d3.map();
 
     function _label (selection) {
@@ -1205,6 +1206,12 @@ function label () {
 
     }
 
+    _label.alias = function (name, alias) {
+        return arguments.length > 1
+            ? aliases.set(name, alias)
+            : aliases.get(name);
+    };
+
     _label.attr = function (name, value) {
         return arguments.length > 1
             ? (labels
@@ -1220,7 +1227,8 @@ function label () {
         if (labels)
             labels
                 .attr('x', x$1)
-                .attr('y', y$1);
+                .attr('y', y$1)
+                .style('display', styles.get('display') || null);
         return _label;
     };
 
@@ -1240,7 +1248,7 @@ function label () {
             let label = d.field;
             let intermediate = d.projection.slice(1, -1);
             return intermediate.length
-                ? [label + ' [' + intermediate.map(a => a.id) + ']']
+                ? [label + ' [' + intermediate.map(a => aliases.get(a.id) || a.id) + ']']
                 : [label];
         }
         if (d.type === 'atom') {
@@ -1518,6 +1526,7 @@ function display (data) {
 
         if (json) {
 
+            if (json['aliases']) apply_aliases(json['aliases']);
             if (json['projections']) apply_projections(json['projections'], data);
             if (json['layout']) apply_layout(json['layout'], data);
             if (json['functions']) functions = build_functions(json['functions']);
@@ -1700,6 +1709,15 @@ function display (data) {
         });
     }
 
+
+    function apply_aliases (a) {
+        aliases.clear();
+        d3.entries(a).forEach(function (alias) {
+            const key = alias.key;
+            const value = alias.value;
+            aliases.set(key, value);
+        });
+    }
 
     function apply_attrs (shape, attributes) {
         d3.entries(attributes).forEach(function (attr) {

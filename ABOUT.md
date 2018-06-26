@@ -27,7 +27,7 @@ Customize the appearance of your Alloy Instance page by adding a `.alloy` YAML c
 
 ## Styling
 
-Customize the instance visualization by adding an `instance.yaml` style. A tutorial on creating visualizations and a description of all options can be found [here](/style). The [Alloy Instance Builder](/builder) can be used to interactively create the `instance.yaml` file for your model. By default, the following style is used:
+Customize the instance visualization by adding an `instance.yaml` configuration. A tutorial on creating visualizations and a description of all options can be found [here](/style). The [Alloy Instance Builder](/builder) can be used to interactively create the `instance.yaml` file for your model. By default, the following style is used:
 
 ```yaml
 groups:

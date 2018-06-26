@@ -3,7 +3,7 @@ import {group} from './group';
 import {circle} from './shapes/circle';
 import {line} from './shapes/line';
 import {rectangle} from './shapes/rectangle';
-import {label} from './label';
+import {aliases, label} from './label';
 import {place_group_anchors, place_tuple_anchors} from "./anchor";
 import {curve_bundle_left, curve_bundle_right} from "./arcs/bundle";
 import {arc_straight} from "./arcs";
@@ -56,6 +56,7 @@ function display (data) {
 
         if (json) {
 
+            if (json['aliases']) apply_aliases(json['aliases']);
             if (json['projections']) apply_projections(json['projections'], data);
             if (json['layout']) apply_layout(json['layout'], data);
             if (json['functions']) functions = build_functions(json['functions']);
@@ -238,6 +239,15 @@ function display (data) {
         });
     }
 
+
+    function apply_aliases (a) {
+        aliases.clear();
+        d3.entries(a).forEach(function (alias) {
+            const key = alias.key;
+            const value = alias.value;
+            aliases.set(key, value);
+        })
+    }
 
     function apply_attrs (shape, attributes) {
         d3.entries(attributes).forEach(function (attr) {

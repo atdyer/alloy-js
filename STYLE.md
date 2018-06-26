@@ -16,7 +16,7 @@ groups:
  
 At the top level we have a key `groups` which maps to a pair of mappings: `edges` and `nodes`. Each of these keys then maps to a set of three mappings: `index`, `shape`, and `data`. The `index` key then maps to a number, and the `shape` and `data` keys map to strings. This should feel very familiar to anybody who has ever used an [associative array](https://en.wikipedia.org/wiki/Associative_array) data type in another language (Javascript: [Objects](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object), Python: [dicts](https://docs.python.org/3/library/stdtypes.html#typesmapping), Java: [HashMap](https://docs.oracle.com/javase/8/docs/api/java/util/HashMap.html), etc.).
  
-The groups section of the `instance.yaml` file defines how the instance data is represented visually by binding data elements to shapes. In an Alloy instance, there are two data types: `atoms` and `tuples`. These data types are essentially analagous to atoms and relations in Alloy, with a few minor exceptions that aid in creating nice visualizations. 
+The groups section of the `instance.yaml` file defines how the instance data is represented visually by binding data elements to shapes. In an Alloy instance, there are two data types: `atoms` and `tuples`. These data types are essentially analagous to atoms and relations in Alloy, with a few minor exceptions that aid in creating nice visualizations. Each group is a binding of a set of data to a visual element, such as a circle or line.
  
 <aside>The labels are used as ids for actual SVG groups, which can be useful for debugging purposes. Right-click on the instance visualization and click 'Inspect Element' (or similar, depending on your browser).</aside>
  
@@ -28,17 +28,22 @@ The following API reference gives a complete specification of all options availa
 
 ## API Reference
 
+* [`aliases`](#aliases)
 * [`groups`](#groups)
   * [`data`](#groups-data)
   * [`shape`](#groups-shape)
-  * [`anchor`](#groups-anchor) (Optional)
-  * [`index`](#groups-index) (Optional)
-  * [`label`](#groups-label) (Optional)
-* [`functions`](#functions) (Optional)
-* [`layout`](#layout) (Optional)
+  * [`anchor`](#groups-anchor)
+  * [`index`](#groups-index)
+  * [`label`](#groups-label)
+* [`functions`](#functions)
+* [`layout`](#layout)
   * [`positions`](#layout-positions)
 * [`projections`](#projections)
- 
+
+### <a name='aliases' class='anchor' href='#aliases'>#</a> **`aliases:`** _mapping_
+
+A _mapping_ of key, value pairs of aliases for atoms. The key must be the atom name used by Alloy, and the value must be a _string_. Any time an atom name appears in a label, the alias name defined here will be used.
+
 ### <a name='groups' class='anchor' href='#groups'>#</a> **`groups:`** _mapping_
  
 A _mapping_ of key, value pairs of groups, where keys are group labels and values are _mappings_ that describe each group.
@@ -54,9 +59,7 @@ A string, sequence, or mapping describing the data used in the group. The follow
 
 A _sequence_ can be any combination of these valid _strings_.
 
-> **A word of warning**: the default `instance.yaml` displays all atoms and tuples for a reason. When building a visualization from the ground up, it is practically guaranteed that you will unintentionally forget to include an atom or relation in all but the most simple instances. This can lead to an incomplete graphical representation of the instance, and thus an incorrect understanding of the underlying model. Therefore, it is recommended that you begin building a visualization with all atoms and tuples displayed, gradually filtering items down in to more specific and specialized groupings and stylings.
-
-If `data` is a mapping, the following must be provided:
+If `data` is a _mapping_, the following must be provided:
 
 <div class='subsection'>
 
@@ -80,7 +83,7 @@ Only include tuples that are a member of the field _string_. If a _sequence_ is 
 
 <a name='groups-data-filter-function' href='#groups-data-filter-function'>#</a> **`function:`** [_function_](#functions)
 
-Only include data for which _function_ evaluates to `true`. The _function_ must take a single item as an argument and must return `true` to keep the item, `false` otherwise. The _function_ is used as the callback for [`Array.filter()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter) on the current list of items (i.e. the output of the previous filter, or the data from [source](#groups-data-source) if it is the first filter).
+Only include data for which _function_ evaluates to `true`. The _function_ must take a single item as an argument and must return `true` to keep the item, `false` otherwise. The _function_ is used as the callback for [`Array.filter()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter) on the current list of items (i.e. the output of the previous filter, or the data from [`source`](#groups-data-source) if it is the first filter).
 
 <a name='groups-data-filter-signature' href='#groups-data-filter-signature'>#</a> **`signature:`** _string_ | _sequence_
 
@@ -93,6 +96,8 @@ Only include the tuple _string_ or tuples that are members of _sequence_. Each m
 </div>
 
 </div>
+
+> **A word of warning**: the default `instance.yaml` displays all atoms and tuples for a reason. When building a visualization from the ground up, it is practically guaranteed that you will unintentionally forget to include an atom or relation in all but the most simple instances. This can lead to an incomplete graphical representation of the instance, and thus an incorrect understanding of the underlying model. Therefore, it is recommended that you begin building a visualization with all atoms and tuples displayed, gradually filtering items down in to more specific and specialized groupings and stylings.
 
 <a name='groups-shape' href='#groups-shape'>#</a> **`shape:`** _string_ | _mapping_
 
@@ -136,9 +141,7 @@ Typical styles include [fill](https://developer.mozilla.org/en-US/docs/Web/SVG/A
 
 (Optional) Anchor this group to _group_, where _group_ is the label of another group. Anchoring a group to another group is useful for [representing properties of relations using shapes](../atdyer/8de4b7211a23cc620001577ec4da65cd). 
 
-The data in this group will be filtered to include only items that appear in the projected data of both groups. In the linked example, the group `moments` is anchored to the group `edges`. The `moments` group uses the `moment` relation, which associates a boolean value with each edge (`Vertex` &rarr; `Vertex` &rarr; `Bool`). The `edges` group uses the `edges` relation, which defines connections between vertices (`Vertex` &rarr; `Vertex`). When the instance is projected over an atom in the boolean signature, the `moment` relation will be of the same form as the `edges` relation (`Vertex` &rarr; `Vertex`). So, only tuples that appear in both groups _after projections have been applied_ will be included.
-
-Additionally, the position of each visual element in this group will be anchored to the position of the corresponding element in the anchor group, matched by data point.
+The data in this group will be filtered to include only items that appear in the projected data of both groups. The position of each visual element in this group will then be anchored to the position of the corresponding element in the anchor group, matched by data point.
 
 <a name="groups-index" href="#groups-index">#</a> **`index:`** _number_
 

@@ -1,13 +1,14 @@
 import * as d3 from 'd3';
 
-export {label};
+export {aliases, label};
+
+const aliases = d3.map();
 
 function label () {
 
     let labels;
 
-    let aliases = d3.map(),
-        attributes = d3.map(),
+    let attributes = d3.map(),
         styles = d3.map();
 
     function _label (selection) {
@@ -42,6 +43,12 @@ function label () {
 
     }
 
+    _label.alias = function (name, alias) {
+        return arguments.length > 1
+            ? aliases.set(name, alias)
+            : aliases.get(name);
+    };
+
     _label.attr = function (name, value) {
         return arguments.length > 1
             ? (labels
@@ -57,7 +64,8 @@ function label () {
         if (labels)
             labels
                 .attr('x', x)
-                .attr('y', y);
+                .attr('y', y)
+                .style('display', styles.get('display') || null);
         return _label;
     };
 
@@ -77,7 +85,7 @@ function label () {
             let label = d.field;
             let intermediate = d.projection.slice(1, -1);
             return intermediate.length
-                ? [label + ' [' + intermediate.map(a => a.id) + ']']
+                ? [label + ' [' + intermediate.map(a => aliases.get(a.id) || a.id) + ']']
                 : [label];
         }
         if (d.type === 'atom') {
