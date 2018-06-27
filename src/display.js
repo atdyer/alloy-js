@@ -19,7 +19,8 @@ function display (data) {
     function _display (svg) {
 
         reorder('indexing');
-        layout(svg);
+        layout_row(svg);
+        // layout(svg);
 
         let selection = svg
             .selectAll('.alloy-group')
@@ -165,6 +166,78 @@ function display (data) {
         place_group_anchors(groups);
 
         return groups;
+
+    }
+
+    function layout_row (svg) {
+
+        let atoms = data.atoms();
+
+        let width = parseInt(svg.style('width'));
+        let height = parseInt(svg.style('height'));
+
+        // Count signatures
+        let sigs = d3.map();
+        atoms.forEach(function (atom) {
+            atom.signatures.forEach(function (s) {
+                if (!sigs.has(s)) {
+                    sigs.set(s, 0);
+                }
+                sigs.set(s, sigs.get(s) + 1);
+            });
+        });
+
+        let sigset = d3.set();
+        atoms.forEach(function (atom) {
+            let idx = 0;
+            let fnd = false;
+            atom.signatures.forEach(function (s, i) {
+                if (sigs.get(s) > 1 && !fnd) {
+                    idx = i;
+                    fnd = true;
+                }
+            });
+            if (fnd) {
+                sigset.add(atom.signatures[idx]);
+            }
+        });
+
+        sigs.clear();
+
+        let interval = height / (sigset.size() + 1);
+        sigset.values().forEach(function (s, i) {
+            sigs.set(s, (i+1) * interval);
+        });
+
+        sigs.each(function (value, key) {
+            console.log(key, value);
+        });
+
+        let simulation = d3.forceSimulation(atoms)
+            .force('collide', d3.forceCollide(65))
+            .force('x', d3.forceX(width / 2))
+            .force('y', d3.forceY(function (d) {
+                let signatures = d.signatures;
+                for (let i=0; i<signatures.length; ++i) {
+                    if (sigs.has(signatures[i])) {
+                        return sigs.get(signatures[i]);
+                    }
+                }
+            }).strength(1))
+            .stop();
+
+        let i = 0;
+        const n = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()));
+        for (; i < n; ++i) {
+            simulation.tick();
+        }
+
+        atoms.forEach(function (a) {
+            if ('fx' in a) delete a.fx;
+            if ('fy' in a) delete a.fy;
+        });
+
+
 
     }
 
