@@ -1489,7 +1489,9 @@ function display (data) {
     function _display (svg) {
 
         reorder('indexing');
+
         layout_row(svg);
+        layout_dagre(svg);
         // layout(svg);
 
         let selection = svg
@@ -1639,10 +1641,49 @@ function display (data) {
 
     }
 
-    function layout_row (svg) {
+    function layout_dagre (svg) {
 
         let atoms = data.atoms();
         let tuples = data.tuples();
+
+        let g = new dagre.graphlib.Graph({
+            directed: true
+        });
+
+        g.setGraph({
+            rankdir: 'LR',
+            nodesep: 10
+        });
+        g.setDefaultEdgeLabel(function () { return {}; });
+
+        atoms.forEach(function (atom) {
+            g.setNode(atom.id, {
+                label: atom.id,
+                width: 100,
+                height: 70
+            });
+        });
+
+        tuples.forEach(function (tuple) {
+            g.setEdge(tuple.source.id, tuple.target.id);
+        });
+
+        dagre.layout(g);
+
+        g.nodes().forEach(function (n) {
+            const node = g.node(n);
+            const atom = atoms.find(a => a.id === n);
+            if (atom) {
+                atom.x = node.x;
+                atom.y = node.y;
+            }
+        });
+
+    }
+
+    function layout_row (svg) {
+
+        let atoms = data.atoms();
 
         let width = parseInt(svg.style('width'));
         let height = parseInt(svg.style('height'));
@@ -1680,14 +1721,8 @@ function display (data) {
             sigs.set(s, (i+1) * interval);
         });
 
-        sigs.each(function (value, key) {
-            console.log(key, value);
-        });
-
         let simulation = d3.forceSimulation(atoms)
             .force('collide', d3.forceCollide(65))
-            .force('charge', d3.forceManyBody().strength(-80))
-            // .force('links', d3.forceLink(tuples).distance(150))
             .force('x', d3.forceX(width / 2))
             .force('y', d3.forceY(function (d) {
                 let signatures = d.signatures;
