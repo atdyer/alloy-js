@@ -15,6 +15,10 @@ function display (data) {
 
     let groups = [];
     let functions = d3.map();
+    let zoom = d3.zoom()
+        .scaleExtent([1/2, 8])
+        .on('zoom', zoomed);
+
 
     function _display (svg) {
 
@@ -46,6 +50,8 @@ function display (data) {
 
         reorder('rendering');
         reposition();
+
+        svg.call(zoom);
 
         return selection;
 
@@ -176,14 +182,16 @@ function display (data) {
         let atoms = data.atoms();
         let tuples = data.tuples();
 
+        let width = parseInt(svg.style('width'));
+        let height = parseInt(svg.style('height'));
+
         let g = new dagre.graphlib.Graph({
             directed: true
         });
 
-        g.setGraph({
-            rankdir: 'LR',
-            nodesep: 10
-        });
+        let graph_obj = {};
+
+        g.setGraph(graph_obj);
         g.setDefaultEdgeLabel(function () { return {}; });
 
         atoms.forEach(function (atom) {
@@ -200,12 +208,18 @@ function display (data) {
 
         dagre.layout(g);
 
+        let graph_width = graph_obj.width;
+        let graph_height = graph_obj.height;
+
+        let dx = (width - graph_width) / 2;
+        let dy = (height - graph_height) /2;
+
         g.nodes().forEach(function (n) {
             const node = g.node(n);
             const atom = atoms.find(a => a.id === n);
             if (atom) {
-                atom.x = node.x;
-                atom.y = node.y;
+                atom.x = node.x + dx;
+                atom.y = node.y + dy;
             }
         });
 
@@ -348,6 +362,12 @@ function display (data) {
         groups.forEach(function (g) {
             g.reposition();
         });
+    }
+
+    function zoomed () {
+        d3.select(this)
+            .selectAll('.alloy-group')
+            .attr("transform", d3.event.transform);
     }
 
 
