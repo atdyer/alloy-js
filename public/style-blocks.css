@@ -6,6 +6,7 @@ body {
     margin: 0 auto 4em auto;
     tab-size: 2;
     -webkit-text-size-adjust: none;
+    overflow-x: hidden;
 }
 
 header {
@@ -163,7 +164,8 @@ aside {
     font-size: 14px;
     line-height: 1.2em;
     padding-top: 0.3em;
-    right: 0;
+    /*right: 0;*/
+    left: 780px;
     position: absolute;
     width: 180px;
 }

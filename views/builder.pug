@@ -22,15 +22,19 @@ html(lang='en')
 
         div.title Alloy Instance Builder
         div.projections#projections
-        div.editor#editor
-            div.message#welcome
-                | Welcome to the Alloy Instance Builder. To get started, open an Alloy XML file. Refer to the
-                |
-                a(href='/style', target='_blank') Style Guide
-                |
-                | for tips on building your stylesheet.
-            div.button-big#open Open XML
-                input#xml-file(style='display: none' type='file')
+        div.left
+            div.editor#editor
+                div.message#welcome
+                    | Welcome to the Alloy Instance Builder. To get started, open an Alloy XML file. Refer to the
+                    |
+                    a(href='/style', target='_blank') Style Guide
+                    |
+                    | for tips on building your stylesheet.
+                div.button-big#open Open XML
+                    input#xml-file(style='display: none' type='file')
+            div.docs-button#docsbtn
+                | Show API
+            iframe(src='/api').docs#docs
         div.display
             svg.alloy-instance
 

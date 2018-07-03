@@ -808,12 +808,12 @@ function circle () {
     _circle.intersection = function (element, path) {
         const target_circle = d3.select(element);
         const length = path.getTotalLength();
-        const stroke = +target_circle.style('stroke-width') || 0;
-        let radius = +target_circle.attr('r') || 0;
+        const stroke = parseFloat(target_circle.style('stroke-width')) || 0;
+        let radius = parseFloat(target_circle.attr('r')) || 0;
         radius += stroke / 2;
         if (length) {
             const endpoint = path.getPointAtLength(length);
-            const intersect = path.getPointAtLength(length - (radius + 1));
+            const intersect = path.getPointAtLength(length - radius);
             const angle = find_angle(endpoint, intersect);
             return {
                 x: intersect.x,
@@ -933,11 +933,12 @@ function rectangle () {
 
     _rectangle.intersection = function (element, path) {
         const target_rect = d3.select(element);
-        const s = parseInt(target_rect.style('stroke-width')) || 0;
-        const w = parseInt(target_rect.attr('width')) + 2 * s;
-        const h = parseInt(target_rect.attr('height')) + 2 * s;
-        const x = parseInt(target_rect.attr('x')) - s;
-        const y = parseInt(target_rect.attr('y')) - s;
+        const s = parseFloat(target_rect.style('stroke-width')) || 0;
+        console.log(target_rect.style('stroke-width'));
+        const w = parseFloat(target_rect.attr('width')) + s;
+        const h = parseFloat(target_rect.attr('height')) + s;
+        const x = parseFloat(target_rect.attr('x')) - 0.5 * s;
+        const y = parseFloat(target_rect.attr('y')) - 0.5 * s;
         const l = path.getTotalLength();
         const center = path.getPointAtLength(l);
         let intersection = find_intersection(path, is_inside(x, y, w, h));
@@ -1052,9 +1053,21 @@ function line () {
             });
 
         arrows = selection
+            .append('g')
+            .attr('class', 'arrow');
+
+        arrows.append('rect')
+            .attr('x', -10)
+            .attr('y', -5)
+            .attr('width', 20)
+            .attr('height', 10)
+            .style('stroke', 'none')
+            .style('fill', 'white');
+
+        arrows
             .append('path')
-            .attr('class', 'arrow')
-            .attr('d', 'M -10 -5 L 0 0 L -10 5 z');
+            .attr('d', 'M -10 -5 L 0 0 L -10 5 z')
+            .style('stroke-width', 0);
 
         lines.each(function (d) {
             d._shape = _line;
@@ -1118,7 +1131,7 @@ function line () {
     function apply_style (name, value) {
         if (lines) lines.attr(name, value);
         if (arrows) {
-            if (name !== 'fill') arrows.style(name, value);
+            if (name !== 'fill' && name !== 'stroke-width') arrows.style(name, value);
             if (name === 'stroke') arrows.style('fill', value);
         }
     }
@@ -1894,7 +1907,8 @@ function display (data) {
         return circle()
             .attr('r', 42)
             .style('fill', '#304148')
-            .style('stroke', 'none');
+            .style('stroke', 'none')
+            .style('stroke-width', 0);
     }
 
     function default_groups () {
@@ -1944,7 +1958,8 @@ function display (data) {
             .attr('width', 100)
             .attr('height', 70)
             .style('fill', '#304148')
-            .style('stroke', 'none');
+            .style('stroke', 'none')
+            .style('stroke-width', 0);
     }
 
     function parse_value (v) {

@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 
 const about = require('./routes/about');
+const api = require('./routes/api');
 const style = require('./routes/style');
 const user = require('./routes/user');
 const gist = require('./routes/gist');
@@ -15,6 +16,7 @@ if (process.env.NODE_ENV === 'dev') {
 app.use(express.static('public'));
 app.get('/favicon.ico', (req, res) => res.status(204));
 app.use('/', about);
+app.use('/', api);
 app.use('/', style);
 app.use('/', builder);
 app.use('/', user);

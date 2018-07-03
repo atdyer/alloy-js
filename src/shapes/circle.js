@@ -60,12 +60,12 @@ function circle () {
     _circle.intersection = function (element, path) {
         const target_circle = d3.select(element);
         const length = path.getTotalLength();
-        const stroke = +target_circle.style('stroke-width') || 0;
-        let radius = +target_circle.attr('r') || 0;
+        const stroke = parseFloat(target_circle.style('stroke-width')) || 0;
+        let radius = parseFloat(target_circle.attr('r')) || 0;
         radius += stroke / 2;
         if (length) {
             const endpoint = path.getPointAtLength(length);
-            const intersect = path.getPointAtLength(length - (radius + 1));
+            const intersect = path.getPointAtLength(length - radius);
             const angle = find_angle(endpoint, intersect);
             return {
                 x: intersect.x,

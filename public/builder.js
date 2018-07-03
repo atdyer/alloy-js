@@ -2,10 +2,15 @@ let open = d3.select('#open');
 let file = d3.select('#xml-file');
 let svg = d3.select('svg');
 let prj = d3.select('#projections');
+let docs = d3.select('#docs');
+let docsbtn = d3.select('#docsbtn');
 
 open.on('click', function () {
     file.node().click();
 });
+
+docs.style('display', 'none');
+docsbtn.on('click', toggle_docs);
 
 file.on('change', function () {
 
@@ -173,4 +178,10 @@ function initialize_editor () {
         extraKeys: { Tab: betterTab }
     });
 
+}
+
+function toggle_docs () {
+    const visible = docs.style('display') === 'flex';
+    docs.style('display', visible ? 'none' : 'flex');
+    docsbtn.text(visible ? 'Show API' : 'Hide API');
 }

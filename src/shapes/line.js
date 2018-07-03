@@ -34,9 +34,21 @@ function line () {
             });
 
         arrows = selection
+            .append('g')
+            .attr('class', 'arrow');
+
+        arrows.append('rect')
+            .attr('x', -10)
+            .attr('y', -5)
+            .attr('width', 20)
+            .attr('height', 10)
+            .style('stroke', 'none')
+            .style('fill', 'white');
+
+        arrows
             .append('path')
-            .attr('class', 'arrow')
-            .attr('d', 'M -10 -5 L 0 0 L -10 5 z');
+            .attr('d', 'M -10 -5 L 0 0 L -10 5 z')
+            .style('stroke-width', 0);
 
         lines.each(function (d) {
             d._shape = _line;
@@ -100,7 +112,7 @@ function line () {
     function apply_style (name, value) {
         if (lines) lines.attr(name, value);
         if (arrows) {
-            if (name !== 'fill') arrows.style(name, value);
+            if (name !== 'fill' && name !== 'stroke-width') arrows.style(name, value);
             if (name === 'stroke') arrows.style('fill', value);
         }
     }

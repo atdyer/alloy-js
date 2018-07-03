@@ -59,11 +59,12 @@ function rectangle () {
 
     _rectangle.intersection = function (element, path) {
         const target_rect = d3.select(element);
-        const s = parseInt(target_rect.style('stroke-width')) || 0;
-        const w = parseInt(target_rect.attr('width')) + 2 * s;
-        const h = parseInt(target_rect.attr('height')) + 2 * s;
-        const x = parseInt(target_rect.attr('x')) - s;
-        const y = parseInt(target_rect.attr('y')) - s;
+        const s = parseFloat(target_rect.style('stroke-width')) || 0;
+        console.log(target_rect.style('stroke-width'));
+        const w = parseFloat(target_rect.attr('width')) + s;
+        const h = parseFloat(target_rect.attr('height')) + s;
+        const x = parseFloat(target_rect.attr('x')) - 0.5 * s;
+        const y = parseFloat(target_rect.attr('y')) - 0.5 * s;
         const l = path.getTotalLength();
         const center = path.getPointAtLength(l);
         let intersection = find_intersection(path, is_inside(x, y, w, h));

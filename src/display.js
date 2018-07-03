@@ -293,8 +293,6 @@ function display (data) {
             if ('fy' in a) delete a.fy;
         });
 
-
-
     }
 
     function layout (svg) {
@@ -540,7 +538,8 @@ function display (data) {
         return circle()
             .attr('r', 42)
             .style('fill', '#304148')
-            .style('stroke', 'none');
+            .style('stroke', 'none')
+            .style('stroke-width', 0);
     }
 
     function default_groups () {
@@ -590,7 +589,8 @@ function display (data) {
             .attr('width', 100)
             .attr('height', 70)
             .style('fill', '#304148')
-            .style('stroke', 'none');
+            .style('stroke', 'none')
+            .style('stroke-width', 0);
     }
 
     function parse_value (v) {
