@@ -38,6 +38,7 @@ The following API reference gives a complete specification of all options availa
 * [`functions`](#functions)
 * [`layout`](#layout)
   * [`positions`](#layout-positions)
+  * [`zoom`](#layout-zoom)
 * [`projections`](#projections)
 
 ### <a name='aliases' class='anchor' href='#aliases'>#</a> **`aliases:`** _mapping_
@@ -206,6 +207,10 @@ functions:
 
 The layout section of the `instance.yaml` file is used to control the positioning of visual elements of the instance.
 
+<a name='layout-method' href='#layout-method'>#</a> **`method:`** dagre | force | row
+
+
+
 <a name='layout-positions' href='#layout-positions'>#</a> **`positions:`** _mapping_
 
 A mapping that can be used to describe the position of individual atoms. Keys are atom names and values are mappings that consist of an `x` and/or a `y` key, value pair.
@@ -230,6 +235,10 @@ Positions defined in the [positions](#layout-positions) section are applied to a
 Atoms that do not have a position defined in the [positions](#layout-positions) section will be assigned a position using a [velocity Verlet numerical integrator](https://github.com/d3/d3-force) for simulating forces on particles. All atoms are part of the simulation, but only those that do not have a position defined will be free to move.
 
 This process is repeated any time a reprojection occurs. Positions defined in the [positions](#layout-positions) section will be reapplied. All others, having been assigned positions during the initial layout, will be held static.
+
+<a name='layout-zoom' href='#layout-zoom'>#</a> **`zoom:`** yes | no
+
+Set `zoom` to the string 'yes' to enable panning and zooming of the instance visualization. Pan by click + dragging the background of the visualization and zoom using the scroll wheel. Default is 'no'.
 
 ### <a name='projections' class='anchor' href='#projections'>#</a> **`projections:`** _mapping_
 

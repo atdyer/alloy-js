@@ -1486,17 +1486,16 @@ function display (data) {
     let groups = [];
     let functions = d3.map();
     let zoom = d3.zoom()
-        .scaleExtent([1/2, 8])
-        .on('zoom', zoomed);
+        .scaleExtent([1/2, 8]);
 
 
     function _display (svg) {
 
         reorder('indexing');
 
-        layout_row(svg);
-        layout_dagre(svg);
-        // layout(svg);
+        // layout_row(svg);
+        // layout_dagre(svg);
+        layout(svg);
 
         let selection = svg
             .selectAll('.alloy-group')
@@ -1571,6 +1570,11 @@ function display (data) {
             });
 
         }
+
+        if (layout['zoom'] === 'yes')
+            zoom.on('zoom', zoomed);
+        else
+            zoom.on('zoom', null);
 
     }
 
@@ -1647,105 +1651,36 @@ function display (data) {
 
     }
 
-    function layout_dagre (svg) {
+    function layout (svg) {
 
         let atoms = data.atoms();
         let tuples = data.tuples();
 
         let width = parseInt(svg.style('width'));
         let height = parseInt(svg.style('height'));
+        let cx = width / 2;
+        let cy = height / 2;
 
-        let g = new dagre.graphlib.Graph({
-            directed: true
-        });
-
-        let graph_obj = {};
-
-        g.setGraph(graph_obj);
-        g.setDefaultEdgeLabel(function () { return {}; });
-
-        atoms.forEach(function (atom) {
-            g.setNode(atom.id, {
-                label: atom.id,
-                width: 100,
-                height: 70
-            });
-        });
-
-        tuples.forEach(function (tuple) {
-            g.setEdge(tuple.source.id, tuple.target.id);
-        });
-
-        dagre.layout(g);
-
-        let graph_width = graph_obj.width;
-        let graph_height = graph_obj.height;
-
-        let dx = (width - graph_width) / 2;
-        let dy = (height - graph_height) /2;
-
-        g.nodes().forEach(function (n) {
-            const node = g.node(n);
-            const atom = atoms.find(a => a.id === n);
-            if (atom) {
-                atom.x = node.x + dx;
-                atom.y = node.y + dy;
+        atoms.forEach(function (a) {
+            if ('x' in a) {
+                a.fx = typeof a.x === 'function'
+                    ? a.x.call(svg.node(), width, height, a)
+                    : a.x;
             }
-        });
-
-    }
-
-    function layout_row (svg) {
-
-        let atoms = data.atoms();
-
-        let width = parseInt(svg.style('width'));
-        let height = parseInt(svg.style('height'));
-
-        // Count signatures
-        let sigs = d3.map();
-        atoms.forEach(function (atom) {
-            atom.signatures.forEach(function (s) {
-                if (!sigs.has(s)) {
-                    sigs.set(s, 0);
-                }
-                sigs.set(s, sigs.get(s) + 1);
-            });
-        });
-
-        let sigset = d3.set();
-        atoms.forEach(function (atom) {
-            let idx = 0;
-            let fnd = false;
-            atom.signatures.forEach(function (s, i) {
-                if (sigs.get(s) > 1 && !fnd) {
-                    idx = i;
-                    fnd = true;
-                }
-            });
-            if (fnd) {
-                sigset.add(atom.signatures[idx]);
+            if ('y' in a) {
+                a.fy = typeof a.y === 'function'
+                    ? a.y.call(svg.node(), width, height, a)
+                    : a.y;
             }
-        });
-
-        sigs.clear();
-
-        let interval = height / (sigset.size() + 1);
-        sigset.values().forEach(function (s, i) {
-            sigs.set(s, (i+1) * interval);
         });
 
         let simulation = d3.forceSimulation(atoms)
+            .force('center', d3.forceCenter(cx, cy))
             .force('collide', d3.forceCollide(65))
-            .force('x', d3.forceX(width / 2))
-            .force('y', d3.forceY(function (d) {
-                let signatures = d.signatures;
-                for (let i=0; i<signatures.length; ++i) {
-                    if (sigs.has(signatures[i])) {
-                        return sigs.get(signatures[i]);
-                    }
-                }
-            }).strength(1))
+            .force('charge', d3.forceManyBody().strength(-80))
+            .force('links', d3.forceLink(tuples).distance(150))
+            .force('x', d3.forceX(cx))
+            .force('y', d3.forceY(cy))
             .stop();
 
         let i = 0;
@@ -1758,8 +1693,6 @@ function display (data) {
             if ('fx' in a) delete a.fx;
             if ('fy' in a) delete a.fy;
         });
-
-
 
     }
 

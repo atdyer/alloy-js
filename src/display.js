@@ -16,17 +16,16 @@ function display (data) {
     let groups = [];
     let functions = d3.map();
     let zoom = d3.zoom()
-        .scaleExtent([1/2, 8])
-        .on('zoom', zoomed);
+        .scaleExtent([1/2, 8]);
 
 
     function _display (svg) {
 
         reorder('indexing');
 
-        layout_row(svg);
-        layout_dagre(svg);
-        // layout(svg);
+        // layout_row(svg);
+        // layout_dagre(svg);
+        layout(svg);
 
         let selection = svg
             .selectAll('.alloy-group')
@@ -101,6 +100,11 @@ function display (data) {
             });
 
         }
+
+        if (layout['zoom'] === 'yes')
+            zoom.on('zoom', zoomed);
+        else
+            zoom.on('zoom', null);
 
     }
 
