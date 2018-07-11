@@ -9,6 +9,7 @@
   * [`label`](#groups-label)
 * [`functions`](#functions)
 * [`layout`](#layout)
+  * [`method`](#layout-method)
   * [`positions`](#layout-positions)
   * [`zoom`](#layout-zoom)
 * [`projections`](#projections)
@@ -181,7 +182,7 @@ The layout section of the `instance.yaml` file is used to control the positionin
 
 <a name='layout-method' href='#layout-method'>#</a> **`method:`** dagre | force | row
 
-
+The method used to perform the layout of atoms that do not have predefined positions. Currently `force` is used by default and is the only one supported, so this value has no effect. The `dagre` and `row` methods are in active development and are planned for upcoming releases.
 
 <a name='layout-positions' href='#layout-positions'>#</a> **`positions:`** _mapping_
 
