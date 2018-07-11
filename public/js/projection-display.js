@@ -4,6 +4,9 @@ function projection_display (data) {
     let on_change;
     let style;
 
+    const arrow_data_right = 'M32,16.009c0-0.267-0.11-0.522-0.293-0.714  l-9.899-9.999c-0.391-0.395-1.024-0.394-1.414,0c-0.391,0.394-0.391,1.034,0,1.428l8.193,8.275H1c-0.552,0-1,0.452-1,1.01  s0.448,1.01,1,1.01h27.586l-8.192,8.275c-0.391,0.394-0.39,1.034,0,1.428c0.391,0.394,1.024,0.394,1.414,0l9.899-9.999  C31.894,16.534,31.997,16.274,32,16.009z';
+    const arrow_data_left = 'M31.106,15H3.278l8.325-8.293  c0.391-0.391,0.391-1.024,0-1.414c-0.391-0.391-1.024-0.391-1.414,0l-9.9,9.899c-0.385,0.385-0.385,1.029,0,1.414l9.9,9.9  c0.391,0.391,1.024,0.391,1.414,0c0.391-0.391,0.391-1.024,0-1.414L3.278,17h27.828c0.552,0,1-0.448,1-1  C32.106,15.448,31.658,15,31.106,15z';
+
     function _projection_display (div) {
 
         if (div) {
@@ -57,7 +60,7 @@ function projection_display (data) {
 
                     if (index === 0) {
 
-                        const left = d3.select(this)
+                        let left = d3.select(this)
                             .selectAll('div')
                             .data([signature]);
 
@@ -65,13 +68,33 @@ function projection_display (data) {
                             .exit()
                             .remove();
 
-                        left
+                        left = left
                             .enter()
                             .append('div')
                             .merge(left)
                             .classed('projection-button', true)
-                            .text('<')
                             .on('click', previous);
+
+                        const icon = left
+                            .selectAll('svg')
+                            .data([signature]);
+
+                        icon
+                            .exit()
+                            .remove();
+
+                        icon
+                            .enter()
+                            .append('svg')
+                            .attr('viewBox', '0 0 32 32')
+                            .attr('width', 32)
+                            .attr('height', 32)
+                            .append('path')
+                            .attr('d', arrow_data_left)
+                            .attr('transform', 'translate(0 0.5)')
+                            .attr('fill', 'black')
+                            .attr('fill-rule', 'evenodd')
+                            .attr('clip-rule', 'evenodd');
 
                     }
 
@@ -114,7 +137,7 @@ function projection_display (data) {
 
                     if (index === 2) {
 
-                        const right = d3.select(this)
+                        let right = d3.select(this)
                             .selectAll('div')
                             .data([signature]);
 
@@ -122,13 +145,33 @@ function projection_display (data) {
                             .exit()
                             .remove();
 
-                        right
+                        right = right
                             .enter()
                             .append('div')
                             .merge(right)
                             .classed('projection-button', true)
-                            .text('>')
                             .on('click', next);
+
+                        const icon = right
+                            .selectAll('svg')
+                            .data([signature]);
+
+                        icon
+                            .exit()
+                            .remove();
+
+                        icon
+                            .enter()
+                            .append('svg')
+                            .attr('viewBox', '0 0 32 32')
+                            .attr('width', 32)
+                            .attr('height', 32)
+                            .append('path')
+                            .attr('d', arrow_data_right)
+                            .attr('transform', 'translate(0 0.5)')
+                            .attr('fill', 'black')
+                            .attr('fill-rule', 'evenodd')
+                            .attr('clip-rule', 'evenodd');
 
                     }
 

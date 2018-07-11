@@ -78,8 +78,10 @@
 
 .signature {
     line-height: 16px;
+    padding: 0 4px;
 }
 
 .atom {
     line-height: 16px;
+    padding: 0 4px;
 }
